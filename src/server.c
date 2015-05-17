@@ -1,6 +1,6 @@
-#include "utils/file_monitor.h"
-#include "utils/network.h"
-#include "utils/tracker_peer_table.h"
+#include "../utils/file_monitor.h"
+#include "../utils/network.h"
+#include "../utils/tracker_peer_table.h"
 #include <pthread.h>
 #include <signal.h>
 #define PASSWORD "hahaha"

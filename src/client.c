@@ -1,5 +1,5 @@
-#include "utils/file_monitor.h"
-#include "utils/network.h"
+#include "../utils/file_monitor.h"
+#include "../utils/network.h"
 #include <pthread.h>
 #include <signal.h>
 #define MAX_TRY 3
