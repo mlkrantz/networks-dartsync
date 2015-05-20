@@ -29,6 +29,7 @@ void watchDirectory(char* directory);
 void block_update();
 void unblock_update();
 void file_table_initial();
+file_node* get_my_file_table();
 void file_table_free(file_node* file_node_head);
 void file_table_print();
 //return 1 if updated, 0 if not updated

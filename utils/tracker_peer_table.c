@@ -1,5 +1,5 @@
 #include "tracker_peer_table.h"
-
+#include "network.h"
 tracker_peer_t* peer_table;
 
 void peer_table_initial() {
@@ -55,10 +55,29 @@ void peer_table_print() {
 tracker_peer_t* get_peer_table() {
 	return peer_table;
 }
-// void* peer_live_check(void* arg) {
-// 	tracker_peer_t* runner = peer_table->next;
-// 	while (runner != NULL) {
-		
-// 	}
-// }
+
+void peer_table_free(tracker_peer_t* peer_node) {
+	tracker_peer_t *curr = peer_node;
+	while (curr != NULL) {
+		tracker_peer_t *temp = curr;
+		curr = curr->next;
+		free(temp);
+	}
+}
+
+void peer_live_check() {
+	tracker_peer_t* runner = peer_table;
+	time_t current_time;
+	time(&current_time);
+	while (runner->next != NULL) {
+		if (current_time - runner->next->last_time_stamp > HEARTBEAT_INTERVAL_SEC + 1) {
+			printf("peer_live_check : Have not get heartbeat from %s\n", inet_ntoa(*(struct in_addr*)&runner->next->ip));
+			tracker_peer_t* temp = runner->next;
+			runner->next = temp->next;
+			free(temp);
+			continue;
+		}
+		runner = runner->next;
+	}
+}
 

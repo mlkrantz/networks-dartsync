@@ -5,22 +5,6 @@ char root_directory[128];
 file_node* file_table;
 time_t last_table_update_time = 0;
 int update_enable;
-// void main(int argc, char const *argv[])
-// {
-// 	watchDirectory("asd");
-// 	file_table_initial();
-// 	last_table_update_time = 0;
-// 	update_enable = 1;
-// 	while (1) {
-// 		if (file_table_update()) {
-// 			printf("\n");
-// 			printf("file_table updated!!!\n");
-// 			file_table_print();
-// 		}
-// 		sleep(8);
-// 	}	
-// 	file_table_free();		
-// }
 
 void block_update() {
 	update_enable =0;
@@ -38,6 +22,9 @@ void file_table_initial() {
 	file_table = (file_node*)malloc(sizeof(file_node));
 	bzero(file_table, sizeof(file_node));
 	file_table->peers[0] = get_My_IP();
+}
+file_node* get_my_file_table() {
+	return file_table;
 }
 void file_table_free(file_node* file_node_head) {
 	file_node* curr = file_node_head;
@@ -60,7 +47,7 @@ int file_table_update() {
 	}
 }
 void file_table_print() {
-	printf("========== file Table ===========\n");
+	printf("==================Local File Table======================\n");
 	file_node* runner = file_table;
 	while (runner->next != NULL) {
 		printf("%s\t", runner->next->name);
@@ -75,24 +62,25 @@ void file_table_print() {
 		printf("\n");
 		runner = runner->next;
 	}
-	printf("=================================\n");
+	printf("========================================================\n");
 }
 int file_table_update_helper(char* directory, file_node** last) {
 	int is_updated = 0;
 	struct stat attrib;
 	stat(directory, &attrib);
-	if (last_table_update_time < attrib.st_mtime) {
+	if (last_table_update_time <= attrib.st_mtime) {
 		is_updated = 1;
 	}
 	DIR * dir_ptr;
 	struct dirent * direntp;
 	if((dir_ptr = opendir(directory))==NULL) {
-		printf("Cannot nopen %s\n",directory);
+		printf("Cannot open %s\n",directory);
 	} else {
 		while ((direntp = readdir(dir_ptr))!=NULL) {
 			if (direntp->d_name[0] != '.' && direntp->d_name[strlen(direntp->d_name)-1] != '~') {//Hidden file not display
 				if (direntp->d_type == FILE_TYPE) {
 					file_node* new_node = (file_node*)malloc(sizeof(file_node));
+					bzero(new_node, sizeof(file_node)); /* temp test */
 					(*last)->next = new_node;
 					(*last) = new_node;					
 					sprintf(new_node->name, "%s/%s", directory, direntp->d_name);
@@ -103,7 +91,7 @@ int file_table_update_helper(char* directory, file_node** last) {
 					new_node->num_peers = 1;
 					new_node->peers[0] = file_table->peers[0];
 					new_node->next = NULL;
-					if (last_table_update_time < attrib.st_mtime) {
+					if (last_table_update_time <= attrib.st_mtime) {
 						is_updated = 1;
 					}
 				} else if (direntp->d_type == FOLDER_TYPE) {
@@ -141,12 +129,16 @@ void send_file_table(int socket) {
 
 void recv_file_table(int socket, file_node** new_table) {
 	int num_nodes;
-	recv(socket, &num_nodes, sizeof(int), 0);
-	printf("Get %d file nodes\n", num_nodes);
+	if (recv(socket, &num_nodes, sizeof(int), 0) < 0 ) {
+		printf("Error in recv_file_table()\n");
+		return;
+	}
+	// printf("Get %d file nodes\n", num_nodes);
 	file_node* runner = *new_table;
 
 	char *buffer = (char*)malloc(sizeof(file_node));
 	int len, buflen;
+	printf("===============Receive remote table===================\n");
 	while (num_nodes > 0) {
 		buflen = 0;
 		bzero(buffer, sizeof(file_node));
@@ -155,7 +147,8 @@ void recv_file_table(int socket, file_node** new_table) {
 			while (buflen < sizeof(file_node)) {
 				if ((len = recv(socket, buffer + buflen, sizeof(file_node) - buflen, 0)) < 0) {
 					printf("Error in recv_file_table\n");
-					break;
+					*new_table = NULL;
+					return;
 				} else {					
 					buflen = buflen + len;
 					// printf("receive len %d, total length %d\n", len, buflen);
@@ -169,7 +162,8 @@ void recv_file_table(int socket, file_node** new_table) {
 			while (buflen < sizeof(file_node)) {
 				if ((len = recv(socket, buffer + buflen, sizeof(file_node) - buflen, 0)) < 0) {
 					printf("Error in recv_file_table\n");
-					break;
+					*new_table = NULL;
+					return;
 				} else {
 					buflen = buflen + len;
 					// printf("receive len %d, total length %d\n", len, buflen);
@@ -180,6 +174,7 @@ void recv_file_table(int socket, file_node** new_table) {
 			runner->next = new_node;
 			runner = new_node;
 		}
+		/* Print the file node entry */
 		printf("%s\t", runner->name);
 		int len = strlen(runner->name);
 		if (len < 8)
@@ -190,13 +185,17 @@ void recv_file_table(int socket, file_node** new_table) {
 			printf("%s\t", inet_ntoa(*(struct in_addr*)&runner->peers[i]));
 		}
 		printf("\n");
+		/* ---------------------------- */
 		num_nodes--;
 	}
+	printf("===============From %s====================\n", inet_ntoa(*(struct in_addr*)&(*new_table)->peers[0]));
+	free(buffer);
 }
 
 void sync_with_server(file_node* server_table) {
 	update_enable = 0;
 	file_node* runner_client = file_table;
+	int is_updated = 0;
 	while (runner_client->next != NULL) {
 		file_node* runner_server = server_table;
 		int is_exist = 0;
@@ -209,6 +208,11 @@ void sync_with_server(file_node* server_table) {
 		}
 		if (is_exist == 0) {
 			printf("%s should be deleted\n", runner_client->next->name);
+			is_updated = 1;
+			/* Delete the local file */
+			char command[200];
+			sprintf(command, "rm %s", runner_client->next->name);
+			system(command);
 		}
 		runner_client = runner_client->next;
 	}
@@ -226,19 +230,38 @@ void sync_with_server(file_node* server_table) {
 		}
 		if (is_exist == 0) {
 			printf("%s should be added\n", runner_server->next->name);
+			is_updated = 1;
+			/* Download the file from peer */
+			download_file_multi_thread(runner_server->next);
 		} else {
 			if (runner_client->next->timestamp < runner_server->next->timestamp) {
 				printf("%s should be updated\n", runner_server->next->name);
+				is_updated = 1;
+				/* Delete the local file */
+				char command[200];
+				sprintf(command, "rm %s", runner_client->next->name);
+				system(command);
+				/* Download the file from peer */
+				download_file_multi_thread(runner_server->next);
 			}
 		}
 		runner_server = runner_server->next;
 	}
+	/* === If updated, refresh the local file table === */
+	if (is_updated) {
+		file_table_free(file_table);
+		file_table_initial();
+		file_node* runner = file_table;
+		is_updated = file_table_update_helper(root_directory, &runner);	
+		last_table_update_time = 0; 
+	}
+	/* ==== Make sure the file_table_update() function will detect the update  ==*/
 	update_enable = 1;
 }
 
 /* Get new file infomation from client file table, and update the local server table. Called by the tracker. */
 void sync_from_client(file_node* client_table) {
-	// printf("file table at present::::::::::::::::\n");
+	// printf(v"file table at present::::::::::::::::\n");
 	// file_table_print();
 	unsigned long client_IP = client_table->peers[0];
 	file_node* runner_server = file_table;
@@ -257,7 +280,9 @@ void sync_from_client(file_node* client_table) {
 			int i;
 			int peer_exist = 0;
 			for (i = 0; i < runner_server->next->num_peers; i++) {
-				if (runner_server->peers[i] == client_IP) {
+				// printf("%s\t", inet_ntoa(*(struct in_addr*)&runner_server->next->peers[i]));
+				// printf("%s\n", inet_ntoa(*(struct in_addr*)&client_IP));//For temp test
+				if (runner_server->next->peers[i] == client_IP) {
 					peer_exist = 1;
 					break;
 				}
@@ -356,6 +381,7 @@ void delete_disconn_peer(unsigned long client_IP) {
 void broadcast_file_table() { 
 	tracker_peer_t *runner = get_peer_table();
 	while (runner->next != NULL) {
+		printf("Broadcast to %s\n", inet_ntoa(*(struct in_addr*)&runner->next->ip));
 		send_file_table(runner->next->sockfd);
 		runner = runner->next;
 	}

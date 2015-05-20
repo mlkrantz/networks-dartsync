@@ -42,7 +42,51 @@ int create_server_socket(int ServerPort){
 	return server_socket;
 }
 
-int create_client_socket(int ServerPort){
+int create_client_socket_byIp(unsigned long ServerIp, int ServerPort) {
+	struct sockaddr_in client_addr;  
+	bzero(&client_addr, sizeof(client_addr));  
+	client_addr.sin_family = AF_INET;
+	client_addr.sin_addr.s_addr = htons(INADDR_ANY); 
+	client_addr.sin_port = htons(0); 
+
+	int client_socket = socket(AF_INET, SOCK_STREAM, 0);  
+	if (client_socket < 0)  {  
+		printf("create_client_socket(): Create Socket Failed!\n");  
+		exit(1);  
+	}  
+
+	if (bind(client_socket, (struct sockaddr*)&client_addr, sizeof(client_addr)))  {  
+		printf("create_client_socket(): Client Bind Port Failed!\n");  
+		exit(1);  
+	}  
+
+	struct sockaddr_in  server_addr;  
+	bzero(&server_addr, sizeof(server_addr));  
+	server_addr.sin_family = AF_INET;  
+
+	struct hostent *host;
+	if ((host = gethostbyaddr((char*)&ServerIp, 4, AF_INET)) == NULL) {
+		printf("create_client_socket(): Error get host by ServerIp\n");
+		exit(1);
+	}
+
+	char* ip = inet_ntoa (*(struct in_addr *)*host->h_addr_list);
+	if (inet_aton(ip, &server_addr.sin_addr) == 0)  {  
+		printf("create_client_socket(): Server IP Address Error!\n");  
+		exit(1);  
+	}  
+
+	server_addr.sin_port = htons(ServerPort);  
+	socklen_t server_addr_length = sizeof(server_addr);  
+
+	if (connect(client_socket, (struct sockaddr*)&server_addr, server_addr_length) < 0) {  
+		printf("create_client_socket(): Can Not Connect To %s!\n", ip);  
+		exit(1);  
+	}  
+	return client_socket;
+}
+
+int create_client_socket(int ServerPort) {
 	struct sockaddr_in client_addr;  
 	bzero(&client_addr, sizeof(client_addr));  
 	client_addr.sin_family = AF_INET;

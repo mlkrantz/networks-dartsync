@@ -9,7 +9,10 @@
 void* handshake_handler(void* arg);
 int get_authorization(int client_handshake_socket);
 void tracker_stop();
+void* peer_live_handler(void* arg);
+
 int server_socket;
+int main_thread_alive = 1;
 int main(int argc, char const *argv[]) {
 	if ((server_socket = create_server_socket(SERVER_PORT)) < 0) {
 		printf("Error creating server socket\n");
@@ -18,6 +21,10 @@ int main(int argc, char const *argv[]) {
 	peer_table_initial();
 	file_table_initial();
 	signal(SIGINT, tracker_stop);
+	pthread_t peer_live_thread;
+	if (pthread_create(&peer_live_thread, NULL, peer_live_handler, NULL) < 0) {
+		printf("Error in pthread_create peer_live_thread\n");
+	}
 	while (1) {
 		int client_socket;
 		if ((client_socket = accept(server_socket, NULL, NULL)) > 0) {			
@@ -26,15 +33,17 @@ int main(int argc, char const *argv[]) {
 				printf("Error in pthread_create()\n");
 			}
 		}		
-	}
-	 
-	
+	}	
 	return 0;
 }
 
 void tracker_stop() {
 	shutdown(server_socket, SHUT_RDWR);
 	close(server_socket);
+	peer_table_free(get_peer_table());
+	file_table_free(get_my_file_table());
+	main_thread_alive = 0;
+	sleep(1);
 	exit(1);
 }
 
@@ -93,7 +102,7 @@ void* handshake_handler(void* arg) {
 			case SIGNAL_FILE_UPDATE:
 				client_table = NULL;
 				recv_file_table(client_handshake_socket, &client_table);
-				printf("==Client Table=====%s ==\n", inet_ntoa(*(struct in_addr*)&client_ip));
+				// printf("^^^^^^^Client Table^^^^^^^^%s ^^^^\n", inet_ntoa(*(struct in_addr*)&client_ip));
 				// runner = client_table;
 				// while (runner->next != NULL) {
 				// 	printf("%s\t", runner->next->name);
@@ -132,8 +141,6 @@ void* handshake_handler(void* arg) {
 	pthread_exit(NULL);
 }
 
-
-
 int get_authorization(int client_handshake_socket) {
 	int length;
 	recv(client_handshake_socket, &length, sizeof(int), 0);
@@ -144,4 +151,14 @@ int get_authorization(int client_handshake_socket) {
 	} else {
 		return 0;
 	}
+}
+
+void* peer_live_handler(void* arg) {
+	while (main_thread_alive) {
+		peer_live_check();
+		sleep(1);		
+	}
+	printf("peer_live_thread exit...\n");
+	pthread_detach(pthread_self());
+	pthread_exit(NULL);
 }

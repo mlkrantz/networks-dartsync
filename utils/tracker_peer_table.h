@@ -19,3 +19,5 @@ void peer_table_initial();
 void peer_table_add(unsigned long ip, int socket);
 void peer_table_update_timestamp(unsigned long ip);
 tracker_peer_t* get_peer_table();
+void peer_table_free(tracker_peer_t* peer_node);
+void peer_live_check();
