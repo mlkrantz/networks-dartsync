@@ -18,5 +18,22 @@
 #define HEARTBEAT_INTERVAL_SEC 10
 #define FILE_UPDATE_INTERVAL_SEC 9
 #define BUFFER_SIZE 1024
+
 unsigned long get_My_IP();
+
+/*
+ * Create a socket listening on ServerPort
+ * Return value is the sockfd
+ */
+int create_server_socket(int ServerPort);
+
+/*
+ * Connect to server with ip address ServerIp and port number ServerPort
+ * Return value is the client sockfd
+ */
 int create_client_socket_byIp(unsigned long ServerIp, int ServerPort);
+
+/*
+ * Connect to server with ip address "tahoe.cs.dartmouth.edu" and port number ServerPort
+ */
+int create_client_socket(int ServerPort);

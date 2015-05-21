@@ -7,7 +7,6 @@ all:
 	cp client bear/client
 	cp client spruce/client
 	cp client green/client
-	scp -r /home/hw87244557/20150517 weihuang@tahoe.cs.dartmouth.edu:/net/grad/weihuang/proj
 
 clean:
 	rm -f client

@@ -2,8 +2,16 @@
 #include "tracker_peer_table.h"
 #include "peer2peer.h"
 #include <pthread.h>
+
 int num_finished = 0;
 pthread_mutex_t *flow_control_mutex;
+
+
+
+/****************************************************
+ *** Test functions for single peer file transfer ***
+ *** No longer useful in multi-peer file transfer ***
+ ****************************************************/
 void download_file(file_node* f_node) {
 	if (f_node->num_peers == 0) {
 		printf("download_file: No peer alive\n");
@@ -144,6 +152,16 @@ void* peer_handler(void* arg) {
 	pthread_exit(NULL);
 }
 
+/****************************************************
+ ********** currently used function  ****************
+ ****************************************************/
+
+/*
+ * set the latest modified time of a given file
+ * input parameters:
+ *      filepath:           the name of file to change time
+ *      time_last_modifed:  the latest modified time
+ */
 void set_mtime(char* filepath, time_t time_last_modified) {
 	char date[16];
 	// printf("the time in the set_mtime function is  %ld\n", time_last_modified);
@@ -161,11 +179,21 @@ void set_mtime(char* filepath, time_t time_last_modified) {
 
 }
 
+/*
+ * When a file needs to be downloaded, this function will be called.
+ * The input parameter is a struct file_node, containing that which peers have the file.
+ * In this function, serveral threads will be created, each requesting a piece of the file from a peer.
+ */
 void download_file_multi_thread(file_node* f_node) {
 	if (f_node->num_peers == 0) {
 		printf("download_file: No peer alive\n");
 		return;
 	}
+    
+    // added by Sha
+    pthread_t thread[f_node->num_peers];
+    peer_info_t peer_info;
+    
 	/* Check if the fold exist */
 	char folder_path[256];
 	bzero(folder_path, sizeof(folder_path));
@@ -181,6 +209,7 @@ void download_file_multi_thread(file_node* f_node) {
 			}
 		} 
 	}
+    
 	/* Create download thread */
 	flow_control_mutex = malloc(sizeof(pthread_mutex_t));
 	pthread_mutex_init(flow_control_mutex, NULL);
@@ -191,6 +220,7 @@ void download_file_multi_thread(file_node* f_node) {
 		pthread_t download_thread;
 		pthread_create(&download_thread, NULL, download_handler, f_node);
 	}
+    
 	/* Check if all the download thread has exit */
 	while (num_finished < f_node->num_peers) {
 		sleep(1);
@@ -228,19 +258,30 @@ void download_file_multi_thread(file_node* f_node) {
 	set_mtime(f_node->name, f_node->timestamp);
 }
 
+/*
+ * In download_file_multi_thread(), serveral threads will be created. And this function is passed into each
+ * thread, to explicitly receiving a trunk of the file from a perr.
+ * The input parameter is of struct _peer_info_t, which can tell us:
+ *      1. from which peer
+ *      2. download which part
+ *      3. of which file
+ */
 void* download_handler(void* arg) {
 	file_node* f_node = (file_node*)arg;
-	/* Connect to the send peer, each download handler will have distinguished send_peer_ip */
+	
+    /* Connect to the send peer, each download handler will have distinguished send_peer_ip */
 	unsigned long send_peer_ip = f_node->peers[f_node->num_peers];
 	pthread_mutex_unlock(flow_control_mutex);	
 	int peer_socket = create_client_socket_byIp(send_peer_ip, PEER_PORT);
-	/* Create new connection with the peer, for one to one service */
+	
+    /* Create new connection with the peer, for one to one service */
 	int download_port = PEER_PORT + 1;
 	int server_socket, download_socket;
 	while ((server_socket = create_server_socket(download_port)) < 0) {
 		download_port++;
 	}
-	/* Initialize the message */
+	
+    /* Initialize the message */
 	peer_msg *message = (peer_msg*)malloc(sizeof(peer_msg));
 	bzero(message, sizeof(peer_msg));
 	message->recv_peer_ip = get_My_IP();
@@ -260,7 +301,8 @@ void* download_handler(void* arg) {
 		printf("Fail sending peer message\n");
 	}
 	free(message);	
-	/* Wating for connecting */
+	
+    /* Wating for connecting */
 	if ((download_socket = accept(server_socket, NULL, NULL)) < 0) {
 		printf("Fail to accept the download_socket\n");
 		close(peer_socket);
@@ -269,10 +311,12 @@ void* download_handler(void* arg) {
 		pthread_detach(pthread_self());
 		pthread_exit(NULL);
 	}
-	/* Receive length of file */
+	
+    /* Receive length of file */
 	int fileLen;
 	recv(download_socket, &fileLen, sizeof(int), 0);
-	/* Create new local file */
+	
+    /* Create new local file */
 	char tempfilename[256];
 	sprintf(tempfilename, "%s_%dtemp", f_node->name, i);
 	FILE *fp = fopen(tempfilename, "w");  
@@ -315,6 +359,13 @@ void* download_handler(void* arg) {
 	pthread_exit(NULL);
 }
 
+/*
+ * This function is passed into a thread created when the program begins.
+ * It always listens on PEER_PORT port. When another peer connects on this port, it means that peer
+ * will request data. So a new thread will be created, and upload_handler() will be passed into that thread
+ * to explicitly handle the data transfer.
+ * Input paramter: the sockfd of TCP connection the thread is listening on.
+ */
 void* peer_handler_multi_thread(void* arg) {
 	/* Get the main socket */
 	int peer_main_socket = *(int*)arg;
@@ -334,6 +385,11 @@ void* peer_handler_multi_thread(void* arg) {
 	pthread_exit(NULL);
 }
 
+/*
+ * This function handles data uploading with a peer for a part of a file.
+ * Input parameter:
+ *      sockfd of the TCP connection between this peer and the peers asking for data.
+ */
 void* upload_handler(void* arg) {
 	/* Get peer socket */
 	int peer_socket = *(int*)arg;
