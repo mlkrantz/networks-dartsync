@@ -6,8 +6,6 @@
 #include <signal.h>
 #include <unistd.h>
 
-#define MAX_TRY 3
-
 void* handshake_handler(void* arg);
 int get_authorization(int client_handshake_socket);
 void tracker_stop();
@@ -166,7 +164,7 @@ void* peer_live_handler(void* arg) {
 		peer_live_check();
 		sleep(1);		
 	}
-	printf("peer_live_thread exit...\n");
+	printf("\npeer_live_thread exit...\n");
 	pthread_detach(pthread_self());
 	pthread_exit(NULL);
 }

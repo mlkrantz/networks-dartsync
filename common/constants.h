@@ -10,4 +10,7 @@
 // Maximum size for user defined password on tracker and peer
 #define MAX_PASSWORD_SIZE 100
 
+// Number of tries for authentication
+#define MAX_TRY 3
+
 #endif
