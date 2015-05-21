@@ -3,7 +3,7 @@
 #include "../utils/tracker_peer_table.h"
 #include <pthread.h>
 #include <signal.h>
-#define PASSWORD "hahaha"
+#define MAX_PASSWORD_SIZE 100
 #define MAX_TRY 3
 
 void* handshake_handler(void* arg);
@@ -13,7 +13,13 @@ void* peer_live_handler(void* arg);
 
 int server_socket;
 int main_thread_alive = 1;
+char password[MAX_PASSWORD_SIZE] = "";
+
 int main(int argc, char const *argv[]) {
+    printf("Enter a password peer nodes will use to connect: ");
+    fflush(stdout);
+    fscanf(stdin, "%s", password);
+
 	if ((server_socket = create_server_socket(SERVER_PORT)) < 0) {
 		printf("Error creating server socket\n");
 		exit(1);
@@ -74,11 +80,11 @@ void* handshake_handler(void* arg) {
 		close(client_handshake_socket);
 		shutdown(server_handshake_socket, SHUT_RDWR);
 		close(server_handshake_socket);
-		printf("handshake_handler exit, beause of failure to pass the authorization\n");
+		fprintf(stderr, "Authentication error, handshake_handler exiting...\n");
 		pthread_detach(pthread_self());
 		pthread_exit(NULL);
 	}
-	printf("connect to client on port %d \n", server_handshake_port);
+	printf("Connected to client on port %d\n", server_handshake_port);
 
 	/* After the authorization, update the peer table */
 	unsigned long client_ip;
@@ -95,7 +101,7 @@ void* handshake_handler(void* arg) {
 			/* Case 1 : It's a heartbeat signal from peer */
 			case SIGNAL_HEARTBEAT:
 				peer_table_update_timestamp(client_ip);
-				printf("Get heartbeat from %s \n", inet_ntoa(*(struct in_addr*)&client_ip));
+				printf("Get heartbeat from %s\n", inet_ntoa(*(struct in_addr*)&client_ip));
 				// peer_table_print();
 				break;
 			/* Case 2 : It's a updated file table from peer */
@@ -121,7 +127,7 @@ void* handshake_handler(void* arg) {
 				file_table_free(client_table);
 				break;
 			default:
-				printf("handshake_handler of %s : Unknown signal type %d\n", inet_ntoa(*(struct in_addr*)&client_ip), state);
+				printf("handshake_handler of %s: Unknown signal type %d\n", inet_ntoa(*(struct in_addr*)&client_ip), state);
 		}
 	}
 
@@ -146,7 +152,7 @@ int get_authorization(int client_handshake_socket) {
 	recv(client_handshake_socket, &length, sizeof(int), 0);
 	char password_received[length+1];
 	recv(client_handshake_socket, password_received, sizeof(char)*(length+1), 0);
-	if (strcmp(password_received, PASSWORD) == 0) {		
+	if (strcmp(password_received, password) == 0) {		
 		return 1;
 	} else {
 		return 0;

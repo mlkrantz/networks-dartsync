@@ -6,7 +6,7 @@
 
 // #define SERVER_HOST_NAME "hw87244557-ThinkPad-Edge-E545"
 #define SERVER_HOST_NAME "tahoe.cs.dartmouth.edu"
-#define LENGTH_OF_LISTEN_QUEUE     20 
+#define LENGTH_OF_LISTEN_QUEUE 20 
 /* The tracker's port in the main thread */
 #define SERVER_PORT 7371
 /* The peer's port in the main thread */

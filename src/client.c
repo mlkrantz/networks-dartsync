@@ -25,16 +25,17 @@ int main(int argc, char const *argv[]) {
 	int try = 0, pass = 0;
 	while (try < MAX_TRY) {
 		if (get_authorization(client_handshake_socket)) {
-			pass =1;
+			pass = 1;
 			break;
 		}
-		printf("Incorrect password..\n");
+		fprintf(stderr, "Error: incorrect password...\n");
 		try++;
 	}
 	if (pass) {
-		printf("connet to server\n");
+		printf("Connected to server!\n");
 	} else {
-		printf("Fail connet to server\n");
+		fprintf(stderr, "Failed to connect to server. Exiting...\n");
+        exit(EXIT_FAILURE);
 	}
 
 	/* Register on the tracker's peer table */
@@ -83,7 +84,7 @@ void peer_stop() {
 	printf("Waiting for all sub threads terminating. Please wait patiently ^_^\n");
 }
 int get_authorization(int client_handshake_socket) {
-	printf("Please input password before login the Dartsync\n");
+	printf("Please input password before logging into Dartsync: ");
 	char password[100];
 	scanf("%s", password);
 	int length = strlen(password);
