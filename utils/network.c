@@ -1,4 +1,5 @@
 #include "network.h"
+#include <unistd.h>
 
 unsigned long get_My_IP() {
 	char hostname[1024];

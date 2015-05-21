@@ -3,6 +3,7 @@
 #include "../utils/tracker_peer_table.h"
 #include <pthread.h>
 #include <signal.h>
+#include <unistd.h>
 #define PASSWORD "hahaha"
 #define MAX_TRY 3
 

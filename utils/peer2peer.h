@@ -13,11 +13,6 @@ typedef struct pr_msg{
 	int idx_of_this_peer;
 	int num_peers;
 	char filename[256];
-    
-    // added by Sha
-    int start_idx;                  // start position of the piece in the file
-    int length;                     // length of the piece in the file
-    
 }peer_msg;
 
 /*
@@ -25,10 +20,10 @@ typedef struct pr_msg{
  */
 typedef struct _peer_info_t {
     char file_name[256];                // Current downloading file name
-    unsigned long file_time_stamp;      // Timestamp of current downloading file
+    //unsigned long file_time_stamp;    // Timestamp of current downloading file
     int sockfd;                         // TCP connection to this remote peer
-    int trunkBegin;                     // where the trunk begins in the file
-    int trunkLength;                    // trunk length of the file
+    int idx_of_this_peer;               // where the trunk begins in the file
+    int num_peers;                      // trunk length of the file
 }peer_info_t;
 
 
