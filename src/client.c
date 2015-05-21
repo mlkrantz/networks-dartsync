@@ -2,6 +2,7 @@
 #include "../utils/peer2peer.h"
 #include <pthread.h>
 #include <signal.h>
+#include <unistd.h>
 #define MAX_TRY 3
 
 void peer_stop();
@@ -87,7 +88,7 @@ int get_authorization(int client_handshake_socket) {
 	printf("Please input password before logging into Dartsync: ");
 	char password[100];
 	scanf("%s", password);
-	int length = strlen(password);
+	int length = (int)strlen(password);
 	send(client_handshake_socket, &length, sizeof(int), 0);
 	send(client_handshake_socket, password, sizeof(char)*(length+1), 0);
 	int result;
