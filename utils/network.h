@@ -4,7 +4,6 @@
 #include <arpa/inet.h>
 #include <string.h>
 
-// #define SERVER_HOST_NAME "hw87244557-ThinkPad-Edge-E545"
 #define SERVER_HOST_NAME "tahoe.cs.dartmouth.edu"
 #define LENGTH_OF_LISTEN_QUEUE 20 
 /* The tracker's port in the main thread */

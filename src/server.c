@@ -1,11 +1,11 @@
 #include "../utils/file_monitor.h"
 #include "../utils/network.h"
 #include "../utils/tracker_peer_table.h"
+#include "../common/constants.h"
 #include <pthread.h>
 #include <signal.h>
 #include <unistd.h>
 
-#define MAX_PASSWORD_SIZE 100
 #define MAX_TRY 3
 
 void* handshake_handler(void* arg);
