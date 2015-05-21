@@ -31,7 +31,7 @@ int create_server_socket(int ServerPort){
 
 	// bind the socket with the server's address
 	if (bind(server_socket, (struct sockaddr*)&server_addr, sizeof(server_addr)))  {  
-		// printf("create_server_socket(): Server Bind Port: %d Failed!\n", ServerPort);  
+		printf("create_server_socket(): Server Bind Port: %d Failed!\n", ServerPort);
 		return -1;  
 	}  
 

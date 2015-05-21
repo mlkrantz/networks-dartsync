@@ -303,6 +303,7 @@ void* download_handler(void* arg) {
     //unsigned long send_peer_ip = f_node->peers[f_node->num_peers];
     //pthread_mutex_unlock(flow_control_mutex);
     int peer_socket = peer_info->sockfd;
+    send(peer_socket, msg, sizeof(peer_msg), 0);
     
     /* Create new connection with the peer, for one to one service */
     /*int download_port = PEER_PORT + 1;
@@ -400,6 +401,9 @@ void* download_handler(void* arg) {
 void* peer_handler_multi_thread(void* arg) {
     /* Get the main socket */
     int peer_main_socket = *(int*)arg;
+    
+    printf("%s: sockfd is %d", __func__, peer_main_socket);
+    
     /* Waiting for incoming request */
     while (1) {
         int peer_socket;
@@ -428,8 +432,14 @@ void* upload_handler(void* arg) {
     /* Receive the message from peer */
     peer_msg *message = (peer_msg*)malloc(sizeof(peer_msg));
     bzero(message, sizeof(peer_msg));
+    recv(peer_socket, message, sizeof(peer_msg), 0);
+    
+    printf("%s: filename: %s, num_peers: %d\n", __func__, message->filename, message->num_peers);
+    
+    
+    
     char buffer[BUFFER_SIZE];
-    bzero(buffer, sizeof(buffer));
+    /*bzero(buffer, sizeof(buffer));
     int buflen = 0, len;
     while (buflen < sizeof(peer_msg)) {
         if ((len = recv(peer_socket, buffer + buflen, sizeof(peer_msg) - buflen, 0)) < 0) {
@@ -439,7 +449,7 @@ void* upload_handler(void* arg) {
             buflen = buflen + len;
         }
     }
-    memcpy(message, buffer, sizeof(peer_msg));
+    memcpy(message, buffer, sizeof(peer_msg));*/
     
     /* Connect to the private file transport socket */
     //int upload_socket = create_client_socket_byIp(message->recv_peer_ip, message->recv_peer_port);
