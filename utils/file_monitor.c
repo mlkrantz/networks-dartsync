@@ -9,7 +9,7 @@ time_t last_table_update_time = 0;
 int update_enable;
 
 void block_update() {
-    update_enable =0;
+    update_enable = 0;
 }
 
 void unblock_update() {

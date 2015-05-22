@@ -4,7 +4,6 @@
 #include <pthread.h>
 #include <signal.h>
 #include <unistd.h>
-#define MAX_TRY 3
 
 void peer_stop();
 int get_authorization(int client_handshake_socket);
@@ -83,7 +82,7 @@ int main(int argc, char const *argv[]) {
 void peer_stop() {
 	main_thread_alive = 0;
 	printf("\nmain_thread_alive has been set to 0\n");
-	printf("Waiting for all sub threads terminating. Please wait patiently ^_^\n");
+	printf("Waiting for all subthreads to terminate. Please wait patiently ^_^\n");
 }
 int get_authorization(int client_handshake_socket) {
 	printf("Please input password before logging into Dartsync: ");
