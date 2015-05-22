@@ -198,7 +198,7 @@ void recv_file_table(int socket, file_node** new_table) {
         num_nodes--;
     }
     if (*new_table != NULL) {
-        printf("=============== From %s====================\n", inet_ntoa(*(struct in_addr*)&(*new_table)->peers[0]));
+        printf("===============From %s====================\n", inet_ntoa(*(struct in_addr*)&(*new_table)->peers[0]));
     }
     free(buffer);
 }
@@ -266,11 +266,11 @@ void sync_with_server(file_node* server_table) {
         is_updated = file_table_update_helper(root_directory, &runner);
         last_table_update_time = 0;
     }
-    /* ==== Make sure the file_table_update() function will detect the update  ==*/
+    /* === Make sure the file_table_update() function will detect the update === */
     update_enable = 1;
 }
 
-/* Get new file infomation from client file table, and update the local server table. Called by the tracker. */
+/* Get new file infomation from client file table, and update the local server table. Called by the tracker */
 void sync_from_client(file_node* client_table) {
     // printf(v"file table at present::::::::::::::::\n");
     // file_table_print();

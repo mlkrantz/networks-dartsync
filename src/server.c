@@ -44,13 +44,20 @@ int main(int argc, char const *argv[]) {
 }
 
 void tracker_stop() {
-	shutdown(server_socket, SHUT_RDWR);
-	close(server_socket);
-	peer_table_free(get_peer_table());
-	file_table_free(get_my_file_table());
-	main_thread_alive = 0;
-	sleep(1);
-	exit(1);
+    /* Avoid repeated calls in quick succession */
+    if (main_thread_alive) {
+        main_thread_alive = 0;
+        shutdown(server_socket, SHUT_RDWR);
+        close(server_socket);
+        if (get_peer_table()) {
+            peer_table_free(get_peer_table());
+        }
+        if (get_my_file_table()) {
+            file_table_free(get_my_file_table());
+        }
+        sleep(1);
+        exit(EXIT_SUCCESS);
+    }
 }
 
 void* handshake_handler(void* arg) {
