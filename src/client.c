@@ -15,7 +15,6 @@ int main_thread_alive = 1;
 int main(int argc, char const *argv[]) {
 	/* Greeting with tracker on the public connection */
 	int client_main_socket = create_client_socket(SERVER_PORT);
-	signal(SIGINT, peer_stop);
 
 	/* Create private connection with tracker */
 	int server_handshake_port;
@@ -36,6 +35,10 @@ int main(int argc, char const *argv[]) {
 		printf("Connected to server!\n");
 	} else {
 		fprintf(stderr, "Failed to connect to server. Exiting...\n");
+        shutdown(client_main_socket, SHUT_RDWR);
+        close(client_main_socket);
+        shutdown(client_handshake_socket, SHUT_RDWR);
+        close(client_handshake_socket);
         exit(EXIT_FAILURE);
 	}
 
@@ -43,16 +46,21 @@ int main(int argc, char const *argv[]) {
 	unsigned long my_ip = get_My_IP();
 	send(client_handshake_socket, &my_ip, sizeof(unsigned long), 0);
 
+    /* Stop threads if SIGINT */
+    signal(SIGINT, peer_stop);
+
 	/* Start heartbeat thread */
 	pthread_t heartbeat_thread;
 	if (pthread_create(&heartbeat_thread, NULL, heartbeat, (void*)&client_handshake_socket) < 0) {
 		printf("Error creating heartbeat thread\n");
 	}
+
 	/* Start file checker thread */
 	pthread_t filechecker_thread;
 	if (pthread_create(&filechecker_thread, NULL, file_checker, (void*)&client_handshake_socket) < 0) {
 		printf("Error creating file_checker thread\n");
 	}
+
 	/* Start tracker handler thread */
 	pthread_t tracker_handler_thread;
 	if (pthread_create(&tracker_handler_thread, NULL, tracker_handler, (void*)&client_handshake_socket) < 0) {
@@ -76,7 +84,8 @@ int main(int argc, char const *argv[]) {
 	close(peer_main_socket);
 	pthread_join(tracker_handler_thread, NULL);
 	pthread_join(peer_handler_thread, NULL);
-	return 0;
+	
+    return 0;
 }
 
 void peer_stop() {
@@ -84,6 +93,7 @@ void peer_stop() {
 	printf("\nmain_thread_alive has been set to 0\n");
 	printf("Waiting for all subthreads to terminate. Please wait patiently ^_^\n");
 }
+
 int get_authorization(int client_handshake_socket) {
 	printf("Please input password before logging into Dartsync: ");
 	char password[MAX_PASSWORD_SIZE];
