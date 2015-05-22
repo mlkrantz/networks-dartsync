@@ -147,6 +147,7 @@ void recv_file_table(int socket, file_node** new_table) {
     char *buffer = (char*)malloc(sizeof(file_node));
     int len, buflen;
     printf("===============Receive remote table===================\n");
+    printf("num_nodes is %d\n", num_nodes);
     while (num_nodes > 0) {
         buflen = 0;
         bzero(buffer, sizeof(file_node));
@@ -196,7 +197,9 @@ void recv_file_table(int socket, file_node** new_table) {
         /* ---------------------------- */
         num_nodes--;
     }
-    printf("===============From %s====================\n", inet_ntoa(*(struct in_addr*)&(*new_table)->peers[0]));
+    if (*new_table != NULL) {
+        printf("=============== From %s====================\n", inet_ntoa(*(struct in_addr*)&(*new_table)->peers[0]));
+    }
     free(buffer);
 }
 
