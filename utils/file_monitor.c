@@ -139,6 +139,7 @@ void recv_file_table(int socket, file_node** new_table) {
     int num_nodes;
     if (recv(socket, &num_nodes, sizeof(int), 0) <= 0) {
         printf("Error in recv_file_table\n");
+        *new_table = NULL;
         return;
     }
     // printf("Got %d file nodes\n", num_nodes);

@@ -13,12 +13,11 @@ void* peer_live_handler(void* arg);
 
 int server_socket;
 int main_thread_alive = 1;
-char password[MAX_PASSWORD_SIZE] = "";
+char *password = "";
 
 int main(int argc, char const *argv[]) {
-    printf("Enter a password peer nodes will use to connect: ");
-    fflush(stdout);
-    fscanf(stdin, "%s", password);
+    char *prompt = "Enter a password peer nodes will use to connect: ";
+    password = getpass(prompt);
 
 	if ((server_socket = create_server_socket(SERVER_PORT)) < 0) {
 		printf("Error creating server socket\n");

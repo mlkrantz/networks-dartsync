@@ -95,9 +95,8 @@ void peer_stop() {
 }
 
 int get_authorization(int client_handshake_socket) {
-	printf("Please input password before logging into Dartsync: ");
-	char password[MAX_PASSWORD_SIZE];
-	scanf("%s", password);
+	char *prompt = "Please input password before logging into Dartsync: ";
+	char *password = getpass(prompt);
 	int length = (int)strlen(password);
 	send(client_handshake_socket, &length, sizeof(int), 0);
 	send(client_handshake_socket, password, sizeof(char)*(length+1), 0);
@@ -147,6 +146,10 @@ void* tracker_handler(void* arg) {
 		server_table = NULL;
 		recv_file_table(client_handshake_socket, &server_table);
 		if (server_table == NULL) {
+            if (main_thread_alive) {
+                printf("File table receive failed, check tracker status. Exiting...\n");
+                main_thread_alive = 0;
+            }
 			continue;
 		}	
 		// printf("^^^^^^^^^^^Server Table^^^^^^^^^^^\n");	

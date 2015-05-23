@@ -402,7 +402,7 @@ void* peer_handler_multi_thread(void* arg) {
     /* Get the main socket */
     int peer_main_socket = *(int*)arg;
     
-    printf("%s: sockfd is %d", __func__, peer_main_socket);
+    // printf("%s: sockfd is %d", __func__, peer_main_socket);
     
     /* Waiting for incoming request */
     while (1) {
