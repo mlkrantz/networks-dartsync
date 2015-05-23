@@ -104,7 +104,7 @@ void* handshake_handler(void* arg) {
 	while (recv(client_handshake_socket, &state, sizeof(int), 0) > 0) {
 		// printf("Recv sth\n");
 		file_node *client_table, *runner;
-		switch(state) {
+		switch (state) {
 			/* Case 1 : It's a heartbeat signal from peer */
 			case SIGNAL_HEARTBEAT:
 				peer_table_update_timestamp(client_ip);
@@ -141,9 +141,11 @@ void* handshake_handler(void* arg) {
 	/* Update the peer table */
 	peer_table_delete(client_ip);
 	peer_table_print();
+
 	/* Update the file table */
 	delete_disconn_peer(client_ip);
 	file_table_print();
+
 	/* Shut down all the stuff of this thread */
 	shutdown(client_handshake_socket, SHUT_RDWR);
 	close(client_handshake_socket);

@@ -137,17 +137,16 @@ void send_file_table(int socket) {
 
 void recv_file_table(int socket, file_node** new_table) {
     int num_nodes;
-    if (recv(socket, &num_nodes, sizeof(int), 0) < 0 ) {
-        printf("Error in recv_file_table()\n");
+    if (recv(socket, &num_nodes, sizeof(int), 0) <= 0) {
+        printf("Error in recv_file_table\n");
         return;
     }
-    // printf("Get %d file nodes\n", num_nodes);
+    // printf("Got %d file nodes\n", num_nodes);
     file_node* runner = *new_table;
     
     char *buffer = (char*)malloc(sizeof(file_node));
     int len, buflen;
     printf("===============Receive remote table===================\n");
-    printf("num_nodes is %d\n", num_nodes);
     while (num_nodes > 0) {
         buflen = 0;
         bzero(buffer, sizeof(file_node));

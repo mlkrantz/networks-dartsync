@@ -412,7 +412,7 @@ void* peer_handler_multi_thread(void* arg) {
             pthread_t upload_thread;
             pthread_create(&upload_thread, NULL, upload_handler, &peer_socket);
         }  else {
-            printf("Fail accept in peer_handler_multi_thread\n");
+            printf("Failed to accept in peer_handler_multi_thread\n");
             break;
         }
     }
