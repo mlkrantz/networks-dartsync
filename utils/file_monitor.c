@@ -95,7 +95,7 @@ int file_table_update_helper(char* directory, file_node** last) {
                     // printf("%s\n", new_node->name);
                     stat(new_node->name, &attrib);
                     new_node->timestamp = attrib.st_mtime;
-                    new_node->size = attrib.st_size;
+                    new_node->size = get_file_size(new_node->name);
                     new_node->num_peers = 1;
                     new_node->peers[0] = file_table->peers[0];
                     new_node->next = NULL;
@@ -258,6 +258,15 @@ void sync_with_server(file_node* server_table) {
         }
         runner_server = runner_server->next;
     }
+    
+    /*
+     *
+     *  Add code to delete useless temporary files
+     *
+     */
+    
+    
+    
     /* === If updated, refresh the local file table === */
     if (is_updated) {
         file_table_free(file_table);
@@ -396,4 +405,35 @@ void broadcast_file_table() {
         send_file_table(runner->next->sockfd);
         runner = runner->next;
     }
+}
+
+/* get file length */
+int get_file_size(char *file_name) {
+    FILE *f = fopen(file_name, "r");
+    int size = 0;
+    if (f == NULL) {
+        printf("open file failed!\n");
+        return -1;
+    }
+    
+    fseek(f, 0, SEEK_END);
+    size = (int)ftell(f);
+    fclose(f);
+    return size;
+}
+
+/* get the number of lines in the file */
+int get_file_line_num(char *file_name) {
+    FILE *f = fopen(file_name, "r");
+    char tmpt_file_name[256];
+    int num_line = 0;
+    if (f == NULL) {
+        printf("%s open file failed!\n", __func__);
+        return -1;
+    }
+    while (fgets(tmpt_file_name, 256, f)) {
+        num_line++;
+    }
+    fclose(f);
+    return num_line;
 }

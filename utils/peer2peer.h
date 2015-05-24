@@ -10,20 +10,25 @@
 typedef struct pr_msg{
 	unsigned long recv_peer_ip;
 	int recv_peer_port;
-	int idx_of_this_peer;
-	int num_peers;
+	/*int idx_of_this_peer;
+	int num_peers;*/
 	char filename[256];
+    int piece_start_idx;                // piece start index
+    int piece_len;                      // piece length
 }peer_msg;
 
 /*
- * struct for dowloadhandler() and upload_handler()
+ * struct for dowload_handler() and upload_handler()
  */
 typedef struct _peer_info_t {
     char file_name[256];                // Current downloading file name
-    //unsigned long file_time_stamp;    // Timestamp of current downloading file
+    unsigned long file_time_stamp;    // Timestamp of current downloading file
     int sockfd;                         // TCP connection to this remote peer
     int idx_of_this_peer;               // where the trunk begins in the file
-    int num_peers;                      // trunk length of the file
+    /* int num_peers;                      // trunk length of the file*/
+    int piece_start_idx;                // piece start index
+    int piece_len;                      // piece length
+    
 }peer_info_t;
 
 
@@ -79,3 +84,19 @@ void* peer_handler_multi_thread(void* arg);
  *      sockfd of the TCP connection between this peer and the peers asking for data.
  */
 void* upload_handler(void* arg);
+
+/*
+ * This function parse the temporary file names, and return a peer_info_t struct
+ * The valid fields in the struct is file_name, piece_start_idx, piece_len, and file_time_stamp
+ */
+peer_info_t *parse_tmpt_file_name(char *tmpt_file_name);
+
+/*
+ * This function gets the available peer index
+ */
+int get_available_peer_idx(int peer_num);
+
+/*
+ * This function checks if all the entries in peer_flag[] is zero
+ */
+int is_all_zero(int peer_num);

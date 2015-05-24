@@ -13,4 +13,6 @@
 // Number of tries for authentication
 #define MAX_TRY 3
 
+#define MAX_PEER_NUM 200
+
 #endif

@@ -2,10 +2,14 @@
 #include "tracker_peer_table.h"
 #include "peer2peer.h"
 #include <pthread.h>
+#include <unistd.h>
+
+#define DEBUG_PRINT_FILENODE 1
+
 
 /*int num_finished = 0;
 pthread_mutex_t *flow_control_mutex;*/
-
+int peer_flag[200];
 
 
 /****************************************************
@@ -185,91 +189,146 @@ void set_mtime(char* filepath, time_t time_last_modified) {
  * In this function, serveral threads will be created, each requesting a piece of the file from a peer.
  */
 void download_file_multi_thread(file_node* f_node) {
+    /* variables */
+    peer_info_t *peer_info = NULL;
+    int fileLen = f_node->size, idx_last_slash = -1, len_file_name, i, start_offset, next_offset, part_length, num_tmpt_file, peer_available_idx = -1, write_length;
+    char curr_dir[256], relative_dir[256], folder_path[256], command[256], tempfilename[256], buffer[BUFFER_SIZE];
+    FILE *fp_tmpt = NULL, *fp = NULL;
+    
+    
     if (f_node->num_peers == 0) {
         printf("download_file: No peer alive\n");
         return;
     }
     
-    // added by Sha
-    pthread_t thread[f_node->num_peers];
-    peer_info_t *peer_info = NULL;
+    bzero(peer_flag, sizeof(int) * 200);
     
-    /* Check if the fold exist */
-    char folder_path[256];
+    /* print for debug */
+    if (DEBUG_PRINT_FILENODE) {
+        printf("File size: %d\n", f_node->size);
+    }
+    
+    /* Check if the fold exist, and get the path prefix of the file, and file name */
+    bzero(curr_dir, 256);
+    bzero(relative_dir, 256);
     bzero(folder_path, sizeof(folder_path));
-    int len_file_name = strlen(f_node->name);
-    int i;
+    len_file_name = (int)strlen(f_node->name);
     for ( i = 0; i < len_file_name; i++) {
         folder_path[i] = f_node->name[i];
         if (folder_path[i] == '/') {
             if (opendir(folder_path) == NULL) {
-                char command[256];
+                bzero(command, 256);
                 sprintf(command, "mkdir %s", folder_path);
                 system(command);
             }
+            idx_last_slash = i;
         }
     }
+    memcpy(curr_dir, f_node->name, idx_last_slash);
+    memcpy(relative_dir, f_node->name + idx_last_slash + 1, strlen(f_node->name)-idx_last_slash-1);
     
-    /* Create download thread */
-    for (i = 0; i < f_node->num_peers; i++) {
-        // create a struct peer_info_t to pass into the download_handler()
-        peer_info = malloc(sizeof(peer_info_t));
-        peer_info->sockfd = create_client_socket_byIp(f_node->peers[i], PEER_PORT);
-        peer_info->idx_of_this_peer = i;
-        peer_info->num_peers = f_node->num_peers;
-        sprintf(peer_info->file_name, "%s", f_node->name);
-        pthread_create(&thread[i], NULL, download_handler, (void *)peer_info);
+    /* save the result of finding corresponding temporary files */
+    bzero(command, 256);
+    sprintf(command, "find ./%s -type f -name \"%s__*__%ld~\" > tmpt_file.txt", curr_dir, relative_dir, f_node->timestamp);
+    system(command);
+    printf("command is: %s\n", command);
+    
+    /* if there are no temporary files locally, we start downloading directly */
+    if (get_file_size("tmpt_file.txt") <= 0) {
+        
+        printf("no temporary files, start new donwloadings...\n");
+        
+        /* Create download thread */
+        num_tmpt_file = f_node->num_peers;
+        for (i = 0; i < f_node->num_peers; i++) {
+            // create a struct peer_info_t to pass into the download_handler()
+            peer_info = malloc(sizeof(peer_info_t));
+            bzero(peer_info, sizeof(peer_info_t));
+            peer_info->sockfd = create_client_socket_byIp(f_node->peers[i], PEER_PORT);
+            //peer_info->sockfd = 1;
+            
+            // calculate the piece start indx and calculate the piece length
+            start_offset = (int) ((long) fileLen * (long)i / (long) f_node->num_peers);
+            next_offset = (int) ((long) fileLen * (long)(i + 1) / (long) f_node->num_peers);
+            part_length = next_offset - start_offset;
+            peer_info->piece_start_idx  = start_offset;
+            peer_info->piece_len        = part_length;
+            peer_info->file_time_stamp  = f_node->timestamp;
+            peer_info->idx_of_this_peer = i;
+            sprintf(peer_info->file_name, "%s", f_node->name);
+            peer_flag[i] = 1;
+            pthread_t thread;
+            pthread_create(&thread, NULL, download_handler, (void *)peer_info);
+        }
+    }
+    /* if there are temporary files, which means we resume from partial downloading */
+    else {
+        printf("temporary files exist, resume downloading...\n");
+        
+        num_tmpt_file = get_file_line_num("tmpt_file.txt");
+        fp_tmpt = fopen("tmpt_file.txt", "r");
+        if (fp_tmpt == NULL) {
+            printf("open tmpt_file.txt failed!\n");
+            return;
+        }
+        while (fgets(tempfilename, 256, fp_tmpt)) {
+            tempfilename[strlen(tempfilename)-1] = '\0';
+            
+            while ((peer_available_idx = get_available_peer_idx(f_node->num_peers)) == -1) {
+                sleep(1);
+            }
+            peer_flag[peer_available_idx] = 1;
+            printf("resuming download %s\n", tempfilename);
+            peer_info = parse_tmpt_file_name(tempfilename);
+            peer_info->sockfd = create_client_socket_byIp(f_node->peers[peer_available_idx], PEER_PORT);
+            //peer_info->sockfd = 1;
+            //peer_info->piece_len -= get_file_size(tempfilename);
+            //peer_info->piece_start_idx += get_file_size(tempfilename);
+            peer_info->idx_of_this_peer = peer_available_idx;
+            pthread_t thread;
+            pthread_create(&thread, NULL, download_handler, (void *)peer_info);
+            bzero(tempfilename, 256);
+            
+        }
+        fclose(fp_tmpt);
+        bzero(command, 256);
+        sprintf(command, "rm tmpt_file.txt");
+        system(command);
     }
     
-    /* Check if all the download threads exit */
-    for (i = 0; i < f_node->num_peers; i++) {
-        pthread_join(thread[i], NULL);
+    while (is_all_zero(f_node->num_peers)) {
+        sleep(1);
     }
-    
-    /**************************************************************************
-     // Create download thread
-     flow_control_mutex = malloc(sizeof(pthread_mutex_t));
-     pthread_mutex_init(flow_control_mutex, NULL);
-     num_finished = 0;
-     for (i = 0; i < f_node->num_peers; i++) {
-     pthread_mutex_lock(flow_control_mutex);
-     f_node->peers[f_node->num_peers] = f_node->peers[i];
-     pthread_t download_thread;
-     pthread_create(&download_thread, NULL, download_handler, f_node);
-     }
-     
-     // Check if all the download thread has exit
-     while (num_finished < f_node->num_peers) {
-     sleep(1);
-     }
-     free(flow_control_mutex);
-     **************************************************************************/
     
     
     /* Merge the file */
-    FILE *fp = fopen(f_node->name, "w");
+    fp = fopen(f_node->name, "w");
     if (fp == NULL)  {
         printf("download_file_multi_thread: File:\t%s Can Not Open To Write!\n", f_node->name);
         return;
     }
-    for (i = 0; i < f_node->num_peers; i++) {
-        char tempfilename[256];
-        sprintf(tempfilename, "%s_%dtemp", f_node->name, i);
+    for (i = 0; i < num_tmpt_file; i++) {
+        bzero(tempfilename, 256);
+        //sprintf(tempfilename, "%s_%dtemp", f_node->name, i);
+        start_offset = (int) ((long) fileLen * (long)i / (long) num_tmpt_file);
+        next_offset = (int) ((long) fileLen * (long)(i + 1) / (long) num_tmpt_file);
+        part_length = next_offset - start_offset;
+        sprintf(tempfilename, "%s__%d__%d__%lu~", f_node->name, start_offset, part_length, f_node->timestamp);
+        printf("i %d, tempfilename %s\n", i, tempfilename);
         /* Open temp file */
-        FILE *temp_fp = fopen(tempfilename, "r");
-        if (temp_fp == NULL) {
+        fp_tmpt = fopen(tempfilename, "r");
+        if (fp_tmpt == NULL) {
             printf("%s Not found !\n", tempfilename);
         }
         /* Copy the data */
-        char buffer[BUFFER_SIZE];
         bzero(buffer, sizeof(buffer));
         int buflen;
-        while ((buflen = fread(buffer, sizeof(char), BUFFER_SIZE, temp_fp)) > 0) {
-            int write_length = fwrite(buffer, sizeof(char), buflen, fp);
+        while ((buflen = (int)fread(buffer, sizeof(char), BUFFER_SIZE, fp_tmpt)) > 0) {
+            write_length = (int)fwrite(buffer, sizeof(char), buflen, fp);
         }
-        fclose(temp_fp);
+        fclose(fp_tmpt);
         /* Remove the temp file */
-        char command[256];
+        bzero(command, 256);
         sprintf(command, "rm %s", tempfilename);
         system(command);
     }
@@ -287,70 +346,29 @@ void download_file_multi_thread(file_node* f_node) {
  *      3. of which file
  */
 void* download_handler(void* arg) {
+    // variable
     peer_info_t *peer_info = (peer_info_t *)arg;
-    
-    
-    /* Initialize the peer-to-peer message */
-    peer_msg *msg = (peer_msg *)malloc(sizeof(peer_msg));
-    bzero(msg, sizeof(peer_msg));
-    sprintf(msg->filename, "%s", peer_info->file_name);
-    msg->idx_of_this_peer = peer_info->idx_of_this_peer;
-    msg->num_peers        = peer_info->num_peers;
-    
-    //file_node* f_node = (file_node*)arg;
-    
-    /* Connect to the send peer, each download handler will have distinguished send_peer_ip */
-    //unsigned long send_peer_ip = f_node->peers[f_node->num_peers];
-    //pthread_mutex_unlock(flow_control_mutex);
-    int peer_socket = peer_info->sockfd;
-    send(peer_socket, msg, sizeof(peer_msg), 0);
-    
-    /* Create new connection with the peer, for one to one service */
-    /*int download_port = PEER_PORT + 1;
-    int server_socket, download_socket;
-    while ((server_socket = create_server_socket(download_port)) < 0) {
-        download_port++;
-    }*/
-    
-    /* Initialize the message */
-    /*peer_msg *message = (peer_msg*)malloc(sizeof(peer_msg));
-    bzero(message, sizeof(peer_msg));
-    message->recv_peer_ip = get_My_IP();
-    message->recv_peer_port = download_port;
-    int i = 0;
-    while (f_node->peers[i] != send_peer_ip) {
-        i++;
-    }
-    if (i == f_node->num_peers) {
-        printf("download_handler: Error getting the right idx_of_this_peer\n");
-    } else {
-        message->idx_of_this_peer = i;
-    }
-    message->num_peers = f_node->num_peers;
-    sprintf(message->filename, "%s", f_node->name);
-    if (send(peer_socket, message, sizeof(peer_msg), 0) < 0) {
-        printf("Fail sending peer message\n");
-    }
-    free(message);*/
-    
-    /* Wating for connecting */
-    /*if ((download_socket = accept(server_socket, NULL, NULL)) < 0) {
-        printf("Fail to accept the download_socket\n");
-        close(peer_socket);
-        close(server_socket);
-        num_finished++;
-        pthread_detach(pthread_self());
-        pthread_exit(NULL);
-    }*/
-    
-    /* Receive length of file */
-    int fileLen;
-    recv(peer_socket, &fileLen, sizeof(int), 0);
+    int peer_socket = peer_info->sockfd, fileLen;
+    peer_msg *msg = NULL;
+    FILE *fp = NULL;
+    char tempfilename[256];
     
     /* Create new local file */
-    char tempfilename[256];
-    sprintf(tempfilename, "%s_%dtemp", peer_info->file_name, peer_info->idx_of_this_peer);
-    FILE *fp = fopen(tempfilename, "w");
+    memset(tempfilename, 0, 256);
+    sprintf(tempfilename, "%s__%d__%d__%lu~", peer_info->file_name, peer_info->piece_start_idx, peer_info->piece_len, peer_info->file_time_stamp);
+    
+    /* Initialize the peer-to-peer message */
+    msg = (peer_msg *)malloc(sizeof(peer_msg));
+    bzero(msg, sizeof(peer_msg));
+    sprintf(msg->filename, "%s", peer_info->file_name);
+    msg->piece_start_idx = peer_info->piece_start_idx + get_file_size(tempfilename);
+    msg->piece_len       = peer_info->piece_len - get_file_size(tempfilename);
+    fileLen = msg->piece_len;
+    send(peer_socket, (void *)msg, sizeof(peer_msg), 0);
+    
+    
+
+    fp = fopen(tempfilename, "a");
     if (fp == NULL)  {
         printf("download_handler: File:\t%s Can Not Open To Write!\n", tempfilename);
     } else {
@@ -361,7 +379,7 @@ void* download_handler(void* arg) {
         while (download_length < fileLen) {
             int buflen = 0, len;
             while (download_length < fileLen && buflen < BUFFER_SIZE) {
-                if ((len = recv(peer_socket, buffer + buflen, BUFFER_SIZE - buflen, 0)) < 0) {
+                if ((len = (int)recv(peer_socket, buffer + buflen, BUFFER_SIZE - buflen, 0)) < 0) {
                     printf("Error receive file data\n");
                     download_length = fileLen;
                     break;
@@ -370,7 +388,8 @@ void* download_handler(void* arg) {
                     download_length = download_length + len;
                 }
             }
-            int write_length = fwrite(buffer, sizeof(char), buflen, fp);
+            int write_length = (int)fwrite(buffer, sizeof(char), buflen, fp);
+            fflush(fp);
             if (write_length < buflen) {
                 printf("recvFile(): File:\t%s Write Failed!\n", peer_info->file_name);
                 download_length = fileLen;
@@ -380,14 +399,13 @@ void* download_handler(void* arg) {
         }
         fclose(fp);
     }
-    //num_finished++;
-    /*close(peer_socket);
-    close(server_socket);*/
+    
     close(peer_socket);
     free(msg);
     // printf("Reach 1\n");
     pthread_detach(pthread_self());
     // printf("Reach 2\n");
+    peer_flag[peer_info->idx_of_this_peer] = 0;
     pthread_exit(NULL);
 }
 
@@ -401,8 +419,6 @@ void* download_handler(void* arg) {
 void* peer_handler_multi_thread(void* arg) {
     /* Get the main socket */
     int peer_main_socket = *(int*)arg;
-    
-    // printf("%s: sockfd is %d", __func__, peer_main_socket);
     
     /* Waiting for incoming request */
     while (1) {
@@ -434,7 +450,7 @@ void* upload_handler(void* arg) {
     bzero(message, sizeof(peer_msg));
     recv(peer_socket, message, sizeof(peer_msg), 0);
     
-    printf("%s: filename: %s, num_peers: %d\n", __func__, message->filename, message->num_peers);
+    //printf("%s: filename: %s, num_peers: %d\n", __func__, message->filename, message->num_peers);
     
     
     
@@ -460,15 +476,17 @@ void* upload_handler(void* arg) {
         printf("File:\t%s Not Found!\n", message->filename);
     } else {
         /* Get the total length of the file */
-        fseek(fp, 0, SEEK_END);
-        int fileLen = ftell(fp);
-        fseek(fp, 0, SEEK_SET);
+        //fseek(fp, 0, SEEK_END);
+        //int fileLen = ftell(fp);
+        //fseek(fp, 0, SEEK_SET);
         /* Calculate the start offset and the length of the part of file to be sent */
-        int start_offset = (int) ((long) fileLen * (long)(message->idx_of_this_peer) / (long) message->num_peers);
+        /*int start_offset = (int) ((long) fileLen * (long)(message->idx_of_this_peer) / (long) message->num_peers);
         int next_offset = (int) ((long) fileLen * (long)(message->idx_of_this_peer + 1) / (long) message->num_peers);
-        int part_length = next_offset - start_offset;
+        int part_length = next_offset - start_offset;*/
+        int start_offset = message->piece_start_idx;
+        int part_length = message->piece_len;
         /* Send the file length */
-        send(peer_socket, &part_length, sizeof(int), 0);
+        //send(peer_socket, &part_length, sizeof(int), 0);
         /* Send the file data */
         fseek(fp, start_offset, SEEK_SET);
         int file_block_length;
@@ -483,10 +501,85 @@ void* upload_handler(void* arg) {
             }  else {
                 length_sent = length_sent + file_block_length;
             }
+            printf("sleep 1s before sending another block...\n");
+            sleep(1);
+            printf("sleep is over!\n");
+            
         }
         fclose(fp);
     }
     free(message); 
     pthread_detach(pthread_self());
     pthread_exit(NULL);
+}
+
+/*
+ * This function parse the temporary file names, and return a peer_info_t struct
+ * The valid fields in the struct is file_name, piece_start_idx, piece_len, and file_time_stamp
+ * The temporary file name is of such format: <filename>__<startidx>__<expectedFileLength>__<timestamp>__~
+ */
+peer_info_t *parse_tmpt_file_name(char *tmpt_file_name) {
+    peer_info_t *return_t = malloc(sizeof(peer_info_t));
+    bzero(return_t, sizeof(peer_info_t));
+    char buf[20], *pch_last = tmpt_file_name, *pch;
+    
+    // get file_name
+    pch = strstr(tmpt_file_name, "__");
+    memcpy(return_t->file_name, pch_last, pch - pch_last);
+    pch = pch+2;
+    pch_last = pch;
+    
+    // get startidx
+    bzero(buf, 20);
+    pch = strstr(pch, "__");
+    memcpy(buf, pch_last, pch - pch_last);
+    return_t->piece_start_idx = atoi(buf);
+    pch = pch + 2;
+    pch_last = pch;
+    
+    // get expectedFileLength
+    bzero(buf, 20);
+    pch = strstr(pch_last, "__");
+    memcpy(buf, pch_last, pch - pch_last);
+    return_t->piece_len = atoi(buf);
+    pch = pch + 2;
+    pch_last = pch;
+    
+    // get timestamp
+    bzero(buf, 20);
+    pch = strstr(pch_last, "~");
+    memcpy(buf, pch_last, pch - pch_last);
+    return_t->file_time_stamp = atol(buf);
+    pch = pch + 2;
+    pch_last = pch;
+    
+    return return_t;
+}
+
+
+/*
+ * This function gets the available peer index
+ */
+int get_available_peer_idx(int peer_num) {
+    int i;
+    for (i = 0; i < peer_num; i++) {
+        if (peer_flag[i] == 0) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+
+/*
+ * This function checks if all the entries in peer_flag[] is zero
+ */
+int is_all_zero(int peer_num) {
+    int i;
+    for (i = 0; i < peer_num; i++) {
+        if (peer_flag[i] == 1) {
+            return -1;
+        }
+    }
+    return 0;
 }
