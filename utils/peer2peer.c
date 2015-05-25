@@ -2,6 +2,7 @@
 #include "tracker_peer_table.h"
 #include "peer2peer.h"
 #include <pthread.h>
+#include <unistd.h>
 
 /*int num_finished = 0;
 pthread_mutex_t *flow_control_mutex;*/

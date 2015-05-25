@@ -68,21 +68,18 @@ int create_client_socket_byIp(unsigned long ServerIp, int ServerPort) {
 		exit(1);  
 	}  
 
-	struct sockaddr_in  server_addr;  
+	struct sockaddr_in server_addr; 
 	bzero(&server_addr, sizeof(server_addr));  
 	server_addr.sin_family = AF_INET;  
 
-	struct hostent *host;
-	if ((host = gethostbyaddr((char*)&ServerIp, 4, AF_INET)) == NULL) {
-		printf("create_client_socket(): Error get host by server IP\n");
-		exit(1);
-	}
+    struct in_addr in;
+    in.s_addr = ServerIp;
 
-	char* ip = inet_ntoa (*(struct in_addr *)*host->h_addr_list);
+	char* ip = inet_ntoa(in);
 	if (inet_aton(ip, &server_addr.sin_addr) == 0)  {  
 		printf("create_client_socket(): Server IP address error!\n");  
 		exit(1);  
-	}  
+	}
 
 	server_addr.sin_port = htons(ServerPort);  
 	socklen_t server_addr_length = sizeof(server_addr);  
@@ -94,7 +91,7 @@ int create_client_socket_byIp(unsigned long ServerIp, int ServerPort) {
 	return client_socket;
 }
 
-int create_client_socket(int ServerPort) {
+int create_client_socket(char* HostName, int ServerPort) {
 	struct sockaddr_in client_addr;  
 	bzero(&client_addr, sizeof(client_addr));  
 	client_addr.sin_family = AF_INET;
@@ -117,7 +114,7 @@ int create_client_socket(int ServerPort) {
 	server_addr.sin_family = AF_INET;  
 
 	struct hostent *host;
-	if ((host =  gethostbyname(SERVER_HOST_NAME)) == NULL) { // get the host info
+	if ((host = gethostbyname(HostName)) == NULL) { // get the host info
 		printf("create_client_socket(): get server host by name failed\n");
 		exit(1);
 	}

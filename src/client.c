@@ -5,21 +5,44 @@
 #include <signal.h>
 #include <unistd.h>
 
+#define BUF_SIZE 100
+
 void peer_stop();
 int get_authorization(int client_handshake_socket);
+int is_valid_IP(char* location, struct sockaddr_in *addr);
 void* heartbeat(void* arg);
 void* file_checker(void* arg);
 void* tracker_handler(void* arg);
 int main_thread_alive = 1;
 
 int main(int argc, char const *argv[]) {
-	/* Greeting with tracker on the public connection */
-	int client_main_socket = create_client_socket(SERVER_PORT);
+    /* Get tracker info */
+    char tracker_location[BUF_SIZE];
+    printf("Enter tracker hostname or IP address: ");
+    fscanf(stdin, "%s", &tracker_location);
 
-	/* Create private connection with tracker */
-	int server_handshake_port;
-	recv(client_main_socket, &server_handshake_port, sizeof(int), 0);
-	int client_handshake_socket = create_client_socket(server_handshake_port);
+    struct sockaddr_in sa;
+    int client_main_socket = -1;
+    int server_handshake_port = -1;
+    int client_handshake_socket = -1;
+
+    /* Connect using IP or hostname */
+    if (is_valid_IP(tracker_location, &sa)) {
+        /* Greeting with tracker on the public connection */
+        unsigned long addr = sa.sin_addr.s_addr;
+        client_main_socket = create_client_socket_byIp(addr, SERVER_PORT);
+
+        /* Create private connection with tracker */
+        recv(client_main_socket, &server_handshake_port, sizeof(int), 0);
+        client_handshake_socket = create_client_socket_byIp(addr, server_handshake_port);
+    } else {
+	    /* Greeting with tracker on the public connection */
+	    client_main_socket = create_client_socket(tracker_location, SERVER_PORT);
+
+	    /* Create private connection with tracker */
+	    recv(client_main_socket, &server_handshake_port, sizeof(int), 0);
+	    client_handshake_socket = create_client_socket(tracker_location, server_handshake_port);
+    }
 
 	/* Start the authorization process */
 	int try = 0, pass = 0;
@@ -169,4 +192,10 @@ void* tracker_handler(void* arg) {
 	}
 	printf("tracker_handler_thread exit\n");
 	pthread_exit(NULL);
+}
+
+int is_valid_IP(char* location, struct sockaddr_in *addr) {
+    /* Store address in sin_addr upon success */
+    int result = inet_pton(AF_INET, location, &addr->sin_addr);
+    return result > 0;
 }
