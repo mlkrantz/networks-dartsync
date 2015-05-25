@@ -7,11 +7,13 @@
 #include <dirent.h>
 #include <memory.h>
 #include <pthread.h>
+#include <signal.h>
 #include "../utils/peer2peer.h"
 #include "../utils/network.h"
 /* Run on bear */
 int main(int argc, char const *argv[])
 {
+    signal(SIGPIPE, SIG_IGN);
 	/* code */
 	int peer_main_socket = create_server_socket(PEER_PORT);
 	pthread_t thread;

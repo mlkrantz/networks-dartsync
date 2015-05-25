@@ -100,3 +100,8 @@ int get_available_peer_idx(int peer_num);
  * This function checks if all the entries in peer_flag[] is zero
  */
 int is_all_zero(int peer_num);
+
+/*
+ * This function prints the peer_flag table
+ */
+void print_peer_flag(int peer_num);

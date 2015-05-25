@@ -413,7 +413,7 @@ int get_file_size(char *file_name) {
     int size = 0;
     if (f == NULL) {
         printf("open file failed!\n");
-        return -1;
+        return 0;
     }
     
     fseek(f, 0, SEEK_END);
