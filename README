@@ -1,0 +1,117 @@
+*****************************************************************************************************************
+                                         README FOR DARTSYNC - CS 60 Final Project
+                              Authors: Tristan L. Chu, Wei Huang, Matthew Krantz, Jinzheng Sha
+                                             Professor Xia Zhou, Spring 2015
+*****************************************************************************************************************
+
+TO DO: Add more details about how tracker & node communicates. Add features as we implement them. Version history.
+       Update info as it becomes relevant
+
+____________________________
+
+I. GENERAL OVERVIEW
+____________________________ 
+
+Dartsync is an application that enables data & file sharing between users. In contrast to popular services that rely on cloud-based storage, Dartsync employs local file exchange
+and synchronization across device in order to create data and file sharing capabilities. This method of data sharing achieves two benefits: First, the user's data privacy is virtually
+assured, as all files and data are stored locally and managed by users. No extra copies are created on a centralized cloud, which severely reduces the possibility of information theft.
+Second, traffic is constrained within a local network, which minimized traffic burdern and allows for faster file synchronization.
+
+Dartsync operates on a local, perpetually-on node referred to as a "Tracker," and a series of personal devices controlled by individual users referred to as "Peers." Users specify
+the files that they wish to synchronize across peers, and the tracker will enable this synchronization upon file update, addition, or removal. In our implementation of Dartsync,
+we will be implementing the Tracker node using a miniature Linux machine called Raspberry Pi (More information can be found at http://www.raspberrypi.org).
+
+____________________________
+
+II. DESIGN OVERVIEW
+____________________________
+
+UPDATE : 5/24/2015
+
+The two main components of Dartsync are the tracker node and the peer nodes:
+
+  A) TRACKER NODE
+     The tracker node can be considered the central hub of activity that manages the information sent and received by all peer nodes, maintaining file records and notifying peers
+     upon any relevant file updates. An important distinction is that the tracker does not STORE files, but instead only keeps file INFORMATION on all peers nodes. This file information
+     consists of FILE INFORMATION, the PEER IP ADDRESS, and the TIMESTAMP. The tracker will periodically handshake with peer nodes to receive their file information; the tracker then
+     compares tracker-side and peer-side file information to determine if it needs to broadcast updates to all peers. The tracker will also keep track of which peer has the newest
+     file. The handshake will also tell the tracker which peers are online/alive. If a peer is online/alive, the tracker will receive an update via a "heartbeat" message every
+     minute (SUBJECT TO UPDATE). The tracker will maintain a peer table for the list of active peers and updates it regularly. Failure to receive a "heartbeat" message from a peer will
+     result in the peer being deleted from the peer table.
+
+  B) PEER NODE
+     Peer nodes will each individually monitor a local file directory, communicating with the tracker node and updating files as necessary. Each peer node will send out a handshake
+     message to the tracker node if updates are made within the local file directory. The handshake message from the tracker will contain the timestamps of the latest files and a list
+     of IP addresses that own these files. Each peer node will determine via this handshake whether or not it needs to download files from other peers. Peers utilize Peer-to-Peer (P2P)
+     connections to upload and download files from each other. Each peer has a thread that listens for messages from other peers, as well as a thread to create P2P connections. Peers
+     will maintain a peer-side peer table to track all existing P2P download threads. If multiple peers have a file, peers can request different pieces of said file from these peers
+     concurrently.
+
+_____________________________
+
+III. FEATURES
+_____________________________
+
+UPDATE : 5/24/2015
+
+O Compatibility with Raspberry Pi & other Linux Systems        
+O TCP Connection & Data Transfer
+O Local File Monitoring
+O Synchronization of multiple files by comparing timestamps
+O File replacement when updating files
+O Data retrieval from multiple peers                          
+O Dedicated tracker node implemented on Raspberry Pi
+
+O Partial Download?
+O Cross platform compatibility?
+O Primitive GTK based GUI?
+
+_____________________________________________
+
+IV. IMPLEMENTATION & RUNTIME INSTRUCTIONS
+_____________________________________________
+
+UPDATED : 5/24/2015
+
+Our implementation of Dartsync comprises of the following components & files:
+
+client.c             - Implements the client. Initializes dynamic password authorization for higher security and all relevant threads. Registers on the tracker's peer table.
+
+server.c             - Implements the server. Handles incoming messages from peers, initializes dynamic password authorization for higher security, and creates new connection with the peer.
+
+file_monitor.c       - Manages file system activities. Creates a file table that tracks file activity, including identifying most recent files, changes in file contents such as addition
+                       or removal, and which peers have which files. Synchronizes information with server and client.
+
+network.c            - Creates server and client sockets
+
+peer2peer.c          - Manages communication between peers, as well as the process of uploading and downloading files. Implements threads to track file updates concurrently and sends
+                       messages to update as appropriate. 
+
+tracker_peer_table.c - Table the tracker uses to manage peer connections. Keeps track of which peers are alive, file informatation, and file information specific to each peer.
+
+____________________________
+
+V. SPECIAL NOTES
+____________________________
+
+N/A TO BE FILLED AS NEEDED
+
+____________________________
+
+VI. ACKNOWLEDGEMENTS
+____________________________
+
+Credit for the concept of Dartsync goes to the Computer Science department at Dartmouth College, Professor Xia Zhou, and Professor Andrew Campbell.
+
+Project created as a product of the course CS 60 - Computer Networks, taught at Dartmouth College.
+
+
+
+
+
+
+
+
+
+
+
