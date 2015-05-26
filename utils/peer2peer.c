@@ -3,12 +3,6 @@
 #include "peer2peer.h"
 #include <pthread.h>
 #include <unistd.h>
-<<<<<<< HEAD
-
-#define DEBUG_PRINT_FILENODE 1
-
-=======
->>>>>>> 439777572f6ec45bb67c3fbe3171bb9cf710da0f
 
 /*int num_finished = 0;
 pthread_mutex_t *flow_control_mutex;*/
@@ -205,11 +199,6 @@ void download_file_multi_thread(file_node* f_node) {
     }
     
     bzero(peer_flag, sizeof(int) * 200);
-    
-    /* print for debug */
-    if (DEBUG_PRINT_FILENODE) {
-        printf("File size: %d\n", f_node->size);
-    }
     
     /* Check if the fold exist, and get the path prefix of the file, and file name */
     bzero(curr_dir, 256);
