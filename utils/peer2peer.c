@@ -3,9 +3,12 @@
 #include "peer2peer.h"
 #include <pthread.h>
 #include <unistd.h>
+<<<<<<< HEAD
 
 #define DEBUG_PRINT_FILENODE 1
 
+=======
+>>>>>>> 439777572f6ec45bb67c3fbe3171bb9cf710da0f
 
 /*int num_finished = 0;
 pthread_mutex_t *flow_control_mutex;*/
