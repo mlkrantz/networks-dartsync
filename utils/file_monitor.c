@@ -206,7 +206,10 @@ void recv_file_table(int socket, file_node** new_table) {
 void sync_with_server(file_node* server_table) {
     update_enable = 0;
     file_node* runner_client = file_table;
+    char command[256], file_name[256];
     int is_updated = 0;
+    FILE *f;
+    
     while (runner_client->next != NULL) {
         file_node* runner_server = server_table;
         int is_exist = 0;
@@ -221,7 +224,7 @@ void sync_with_server(file_node* server_table) {
             printf("%s should be deleted\n", runner_client->next->name);
             is_updated = 1;
             /* Delete the local file */
-            char command[200];
+            bzero(command, 256);
             sprintf(command, "rm %s", runner_client->next->name);
             system(command);
         }
@@ -249,7 +252,7 @@ void sync_with_server(file_node* server_table) {
                 printf("%s should be updated\n", runner_server->next->name);
                 is_updated = 1;
                 /* Delete the local file */
-                char command[200];
+                bzero(command, 256);
                 sprintf(command, "rm %s", runner_client->next->name);
                 system(command);
                 /* Download the file from peer */
@@ -264,8 +267,21 @@ void sync_with_server(file_node* server_table) {
      *  Add code to delete useless temporary files
      *
      */
-    
-    
+    bzero(command, 256);
+    sprintf(command, "find . -type f -name \"*~\" > file_to_be_deleted~");
+    system(command);
+    f = fopen("file_to_be_deleted~", "r");
+    bzero(file_name, 256);
+    while (fgets(file_name, 256, f)) {
+        file_name[strlen(file_name)-1] = '\0';
+        bzero(command, 256);
+        sprintf(command, "rm -rf %s", file_name);
+        system(command);
+        bzero(file_name, 256);
+    }
+    bzero(command, 256);
+    sprintf(command, "rm -rf file_to_be_deleted~");
+    system(command);
     
     /* === If updated, refresh the local file table === */
     if (is_updated) {
@@ -412,7 +428,7 @@ int get_file_size(char *file_name) {
     FILE *f = fopen(file_name, "r");
     int size = 0;
     if (f == NULL) {
-        printf("open file failed!\n");
+        //printf("open file failed!\n");
         return 0;
     }
     

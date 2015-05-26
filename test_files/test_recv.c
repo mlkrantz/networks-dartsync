@@ -16,9 +16,10 @@ int main(int argc, char const *argv[])
 	file_node *f_node = (file_node*)malloc(sizeof(file_node));
 	bzero(f_node, sizeof(file_node));
 	sprintf(f_node->name, "asd/pic.jpg");
-	f_node->num_peers = 2;
+	f_node->num_peers = 3;
 	f_node->peers[0] = 550873729;// ip of bear.cs.dartmouth.edu
 	f_node->peers[1] = 3587615361;//ip of spruce.cs.dartmouth.edu
+    f_node->peers[2] = 2698422913; // ip of wildcat.cs.dartmouth.edu
     f_node->size = 36934;
 	download_file_multi_thread(f_node);
 

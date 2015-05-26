@@ -60,12 +60,12 @@ int create_client_socket_byIp(unsigned long ServerIp, int ServerPort) {
 	int client_socket = socket(AF_INET, SOCK_STREAM, 0);  
 	if (client_socket < 0)  {  
 		printf("create_client_socket(): Create socket failed!\n");  
-		exit(1);  
+        return -1;
 	}  
 
 	if (bind(client_socket, (struct sockaddr*)&client_addr, sizeof(client_addr)))  {  
 		printf("create_client_socket(): Client bind port failed!\n");  
-		exit(1);  
+        return -1;
 	}  
 
 	struct sockaddr_in  server_addr;  
@@ -75,13 +75,13 @@ int create_client_socket_byIp(unsigned long ServerIp, int ServerPort) {
 	struct hostent *host;
 	if ((host = gethostbyaddr((char*)&ServerIp, 4, AF_INET)) == NULL) {
 		printf("create_client_socket(): Error get host by server IP\n");
-		exit(1);
+        return -1;
 	}
 
 	char* ip = inet_ntoa (*(struct in_addr *)*host->h_addr_list);
 	if (inet_aton(ip, &server_addr.sin_addr) == 0)  {  
 		printf("create_client_socket(): Server IP address error!\n");  
-		exit(1);  
+        return -1;
 	}  
 
 	server_addr.sin_port = htons(ServerPort);  
@@ -89,7 +89,7 @@ int create_client_socket_byIp(unsigned long ServerIp, int ServerPort) {
 
 	if (connect(client_socket, (struct sockaddr*)&server_addr, server_addr_length) < 0) {  
 		printf("create_client_socket(): Can not connect to %s!\n", ip);  
-		exit(1);  
+        return -1;
 	}  
 	return client_socket;
 }
@@ -104,12 +104,12 @@ int create_client_socket(int ServerPort) {
 	int client_socket = socket(AF_INET, SOCK_STREAM, 0);  
 	if (client_socket < 0)  {  
 		printf("create_client_socket(): Create socket failed!\n");  
-		exit(1);  
+        return -1;
 	}  
 
 	if (bind(client_socket, (struct sockaddr*)&client_addr, sizeof(client_addr)))  {  
 		printf("create_client_socket(): Client bind port failed!\n");  
-		exit(1);  
+        return -1;
 	}  
 
 	struct sockaddr_in  server_addr;  
@@ -119,12 +119,12 @@ int create_client_socket(int ServerPort) {
 	struct hostent *host;
 	if ((host =  gethostbyname(SERVER_HOST_NAME)) == NULL) { // get the host info
 		printf("create_client_socket(): get server host by name failed\n");
-		exit(1);
+        return -1;
 	}
 	char* ip = inet_ntoa (*(struct in_addr *)*host->h_addr_list);
 	if (inet_aton(ip, &server_addr.sin_addr) == 0)  {  
 		printf("create_client_socket(): Server IP address error!\n");  
-		exit(1);  
+        return -1;
 	}  
 
 	server_addr.sin_port = htons(ServerPort);  
@@ -132,7 +132,7 @@ int create_client_socket(int ServerPort) {
 
 	if (connect(client_socket, (struct sockaddr*)&server_addr, server_addr_length) < 0) {  
 		printf("create_client_socket(): Can not connect to %s!\n", ip);  
-		exit(1);  
+        return -1;
 	}  
 	return client_socket;
 }
