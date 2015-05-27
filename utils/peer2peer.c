@@ -263,7 +263,7 @@ void download_file_multi_thread(file_node* f_node) {
     }
     
     while (1) {
-        //print_peer_flag(f_node->num_peers);
+        print_peer_flag(f_node->num_peers);
         if (is_all_zero(f_node->num_peers)) {
             //printf("inside if-clause of is_all_zero()...\n");
             //printf("num_tmpt_file is %d\n", num_tmpt_file);
@@ -312,11 +312,13 @@ void download_file_multi_thread(file_node* f_node) {
         next_offset = (int) ((long) fileLen * (long)(i + 1) / (long) num_tmpt_file);
         part_length = next_offset - start_offset;
         sprintf(tempfilename, "%s__%d__%d__%lu~", f_node->name, start_offset, part_length, f_node->timestamp);
-        printf("i %d, tempfilename %s\n", i, tempfilename);
+        //printf("i %d, tempfilename %s\n", i, tempfilename);
         /* Open temp file */
         fp_tmpt = fopen(tempfilename, "r");
         if (fp_tmpt == NULL) {
-            printf("%s Not found !\n", tempfilename);
+            if (part_length != 0) {
+                printf("%s Not found !\n", tempfilename);
+            }
             // only when the file is empty, will the following line be executed
             continue;
         }
@@ -361,6 +363,7 @@ void* download_handler(void* arg) {
         pthread_exit(NULL);
     }
     
+    
     /* Create new local file */
     memset(tempfilename, 0, 256);
     sprintf(tempfilename, "%s__%d__%d__%lu~", peer_info->file_name, peer_info->piece_start_idx, peer_info->piece_len, peer_info->file_time_stamp);
@@ -372,7 +375,17 @@ void* download_handler(void* arg) {
     msg->piece_start_idx = peer_info->piece_start_idx + get_file_size(tempfilename);
     msg->piece_len       = peer_info->piece_len - get_file_size(tempfilename);
     fileLen = msg->piece_len;
+    
+    
+    /* print for debug */
+    char *ip_addr = NULL;
+    ip_addr = get_address_from_ip(peer_socket);
+    printf("download %s begin at %d, length %d, from %s\n", peer_info->file_name, msg->piece_start_idx, msg->piece_len, ip_addr);
+    free(ip_addr);
+    
+    
     send(peer_socket, (void *)msg, sizeof(peer_msg), 0);
+    
     
 
     fp = fopen(tempfilename, "a");
@@ -432,7 +445,6 @@ void* peer_handler_multi_thread(void* arg) {
     while (1) {
         int *peer_socket = malloc(sizeof(int));
         if ((*peer_socket = accept(peer_main_socket, NULL, NULL)) > 0) {
-            printf("peer_handler_multi_thread : Receive download request\n");
             pthread_t upload_thread;
             pthread_create(&upload_thread, NULL, upload_handler, peer_socket);
         }  else {
@@ -459,43 +471,21 @@ void* upload_handler(void* arg) {
     recv(peer_socket, message, sizeof(peer_msg), 0);
     
     //printf("%s: filename: %s, num_peers: %d\n", __func__, message->filename, message->num_peers);
-    
-    
+    // get address from socket
+    char *ip_addr = NULL;
+    ip_addr = get_address_from_ip(peer_socket);
+    printf("upload %s begin at %d, length %d, to %s\n", message->filename, message->piece_start_idx, message->piece_len, ip_addr);
+    free(ip_addr);
     
     char buffer[BUFFER_SIZE];
-    /*bzero(buffer, sizeof(buffer));
-    int buflen = 0, len;
-    while (buflen < sizeof(peer_msg)) {
-        if ((len = recv(peer_socket, buffer + buflen, sizeof(peer_msg) - buflen, 0)) < 0) {
-            printf("Error recv peer message\n");
-            break;
-        } else {
-            buflen = buflen + len;
-        }
-    }
-    memcpy(message, buffer, sizeof(peer_msg));*/
-    
-    /* Connect to the private file transport socket */
-    //int upload_socket = create_client_socket_byIp(message->recv_peer_ip, message->recv_peer_port);
     
     /* Try to open the file */
     FILE *fp = fopen(message->filename, "r");
     if (fp == NULL)  {  
         printf("File:\t%s Not Found!\n", message->filename);
     } else {
-        /* Get the total length of the file */
-        //fseek(fp, 0, SEEK_END);
-        //int fileLen = ftell(fp);
-        //fseek(fp, 0, SEEK_SET);
-        /* Calculate the start offset and the length of the part of file to be sent */
-        /*int start_offset = (int) ((long) fileLen * (long)(message->idx_of_this_peer) / (long) message->num_peers);
-        int next_offset = (int) ((long) fileLen * (long)(message->idx_of_this_peer + 1) / (long) message->num_peers);
-        int part_length = next_offset - start_offset;*/
         int start_offset = message->piece_start_idx;
         int part_length = message->piece_len;
-        /* Send the file length */
-        //send(peer_socket, &part_length, sizeof(int), 0);
-        /* Send the file data */
         fseek(fp, start_offset, SEEK_SET);
         int file_block_length;
         int length_sent = 0;

@@ -182,19 +182,19 @@ void recv_file_table(int socket, file_node** new_table) {
             new_node->next = NULL;
             runner->next = new_node;
             runner = new_node;
+            /* Print the file node entry */
+            printf("%s\t", runner->name);
+            int len = strlen(runner->name);
+            if (len < 8)
+                printf("\t");
+            printf("%ld\t", runner->timestamp);
+            int i;
+            for (i = 0; i < runner->num_peers; i++) {
+                printf("%s\t", inet_ntoa(*(struct in_addr*)&runner->peers[i]));
+            }
+            printf("\n");
+            /* ---------------------------- */
         }
-        /* Print the file node entry */
-        printf("%s\t", runner->name);
-        int len = strlen(runner->name);
-        if (len < 8)
-            printf("\t");
-        printf("%ld\t", runner->timestamp);
-        int i;
-        for (i = 0; i < runner->num_peers; i++) {
-            printf("%s\t", inet_ntoa(*(struct in_addr*)&runner->peers[i]));
-        }
-        printf("\n");
-        /* ---------------------------- */
         num_nodes--;
     }
     if (*new_table != NULL) {
@@ -407,8 +407,10 @@ void delete_disconn_peer(unsigned long client_IP) {
                 break;
             }
         }
-        runner_server->next->num_peers--;
-        runner_server->next->peers[i] = runner_server->next->peers[runner_server->next->num_peers];
+        if (peer_exist) {
+            runner_server->next->num_peers--;
+            runner_server->next->peers[i] = runner_server->next->peers[runner_server->next->num_peers];
+        }
         runner_server = runner_server->next;
     }
 }

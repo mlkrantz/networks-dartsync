@@ -175,19 +175,9 @@ void* tracker_handler(void* arg) {
             }
 			continue;
 		}	
-		// printf("^^^^^^^^^^^Server Table^^^^^^^^^^^\n");	
-		// runner = server_table;
-		// while (runner->next != NULL) {
-		// 	printf("%s\t", runner->next->name);
-		// 	int i;
-		// 	for (i = 0; i < runner->next->num_peers; i++) {
-		// 		printf("%s\t", inet_ntoa(*(struct in_addr*)&runner->next->peers[i]));
-		// 	}
-		// 	printf("\n");
-		// 	runner = runner->next;
-		// }
-		// printf("=================================\n");
+        printf("before sync_with_server()\n");
 		sync_with_server(server_table);
+        printf("after sync_with_server()\n");
 		file_table_free(server_table);
 	}
 	printf("tracker_handler_thread exit\n");

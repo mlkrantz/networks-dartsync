@@ -1,5 +1,6 @@
 #include "network.h"
 #include <unistd.h>
+#include <sys/socket.h>
 
 unsigned long get_My_IP() {
 	char hostname[1024];
@@ -145,4 +146,18 @@ int create_client_socket(char* HostName, int ServerPort) {
         return -1;
 	}  
 	return client_socket;
+}
+
+
+/*
+ * This function returns the ip address given socket
+ */
+char *get_address_from_ip(int socket) {
+    struct sockaddr_in addr;
+    socklen_t addr_size = sizeof(struct sockaddr_in);
+    int res = getpeername(socket, (struct sockaddr *)&addr, &addr_size);
+    char *clientip = malloc(20);
+    bzero(clientip, 20);
+    strcpy(clientip, inet_ntoa(addr.sin_addr));
+    return clientip;
 }

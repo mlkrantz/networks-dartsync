@@ -38,6 +38,7 @@ int file_table_update_helper(char* directory, file_node** last);
 void send_file_table(int socket);
 void recv_file_table(int socket, file_node** new_table);
 void delete_disconn_peer(unsigned long client_IP);
+void sync_with_server(file_node* server_table);
 
 // added by Sha
 int get_file_size(char *file_name);

@@ -35,3 +35,8 @@ int create_client_socket_byIp(unsigned long ServerIp, int ServerPort);
  * Connect to server with ip address "tahoe.cs.dartmouth.edu" and port number ServerPort
  */
 int create_client_socket(char* HostName, int ServerPort);
+
+/*
+ * This function returns the ip address given socket
+ */
+char *get_address_from_ip(int socket);
