@@ -223,12 +223,12 @@ void download_file_multi_thread(file_node* f_node) {
     bzero(command, 256);
     sprintf(command, "find ./%s -type f -name \"%s__*__%ld~\" > tmpt_file~", curr_dir, relative_dir, f_node->timestamp);
     system(command);
-    printf("command is: %s\n", command);
+    //printf("command is: %s\n", command);
     
     /* if there are no temporary files locally, we start downloading directly */
     if (get_file_size("tmpt_file~") <= 0) {
         
-        printf("no temporary files, start new donwloadings...\n");
+        printf("no temporary files, start new donwloading %s...\n", f_node->name);
         
         /* Create download thread */
         num_tmpt_file = f_node->num_peers;
@@ -255,7 +255,7 @@ void download_file_multi_thread(file_node* f_node) {
     }
     /* if there are temporary files, which means we resume from partial downloading */
     else {
-        printf("temporary files exist, resume downloading...\n");
+        printf("temporary files exist, resume downloading %s...\n", f_node->name);
         num_tmpt_file = get_file_line_num("tmpt_file~");
         bzero(command, 256);
         sprintf(command, "rm -rf tmpt_file~");
@@ -317,6 +317,8 @@ void download_file_multi_thread(file_node* f_node) {
         fp_tmpt = fopen(tempfilename, "r");
         if (fp_tmpt == NULL) {
             printf("%s Not found !\n", tempfilename);
+            // only when the file is empty, will the following line be executed
+            continue;
         }
         /* Copy the data */
         bzero(buffer, sizeof(buffer));
