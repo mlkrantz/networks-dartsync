@@ -1,3 +1,6 @@
+#ifndef FILE_MONITOR_H
+#define FILE_MONITOR_H
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -42,10 +45,12 @@ void recv_file_table(int socket, file_node** new_table);
 void delete_disconn_peer(unsigned long client_IP);
 void sync_with_server(file_node* server_table);
 void sync_from_client(file_node* client_table);
+void broadcast_file_table();
+
 // added by Sha
 int get_file_size(char *file_name);
-
 int get_file_line_num(char *file_name);
+
 // added by Wei
 /*
  * Delete file or folder only when exists 
@@ -55,3 +60,5 @@ void safe_delete(char* file_name);
  * Create a folder when not exist. If the parent directory does not exist, create the parent directory first
  */
 void safe_add_folder(char* folder_name);
+
+#endif

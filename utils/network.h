@@ -1,3 +1,6 @@
+#ifndef NETWORK_H
+#define NETWORK_H
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <netdb.h>
@@ -44,3 +47,5 @@ char *get_address_from_ip(int socket);
  *Get the unsigned long type ip of peer from a socket 
  */
 unsigned long get_peer_IP(int peer_socket);
+
+#endif

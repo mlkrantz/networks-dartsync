@@ -7,7 +7,6 @@ all:
 	cp client bear/client
 	cp client spruce/client
 	cp client green/client
-	cp client wildcat/client
 
 clean:
 	rm -f client

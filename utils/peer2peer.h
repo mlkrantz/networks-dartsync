@@ -1,3 +1,6 @@
+#ifndef PEER2PEER_H
+#define PEER2PEER_H
+
 #include "file_monitor.h"
 
 /*****************************************************
@@ -105,3 +108,5 @@ int is_all_zero(int peer_num);
  * This function prints the peer_flag table
  */
 void print_peer_flag(int peer_num);
+
+#endif

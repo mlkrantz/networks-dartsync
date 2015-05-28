@@ -86,8 +86,7 @@ int create_client_socket_byIp(unsigned long ServerIp, int ServerPort) {
 	if (inet_aton(ip, &server_addr.sin_addr) == 0)  {  
 		printf("create_client_socket(): Server IP address error!\n");  
         		return -1;
-	}  
-
+	}
 	server_addr.sin_port = htons(ServerPort);  
 	socklen_t server_addr_length = sizeof(server_addr);  
 

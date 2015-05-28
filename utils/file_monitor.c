@@ -2,6 +2,7 @@
 #include "network.h"
 #include "tracker_peer_table.h"
 #include <unistd.h>
+#include "peer2peer.h"
 
 char root_directory[128];
 char *file_type_string[] = {"Folder", "File"};
