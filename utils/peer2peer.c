@@ -327,6 +327,12 @@ void download_file_multi_thread(file_node* f_node) {
         int buflen;
         while ((buflen = (int)fread(buffer, sizeof(char), BUFFER_SIZE, fp_tmpt)) > 0) {
             write_length = (int)fwrite(buffer, sizeof(char), buflen, fp);
+        /*
+         * should add bzero() after reading temporary files each time
+         */
+        
+        
+        
         }
         fclose(fp_tmpt);
         /* Remove the temp file */
