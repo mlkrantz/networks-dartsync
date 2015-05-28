@@ -93,8 +93,11 @@ void* handshake_handler(void* arg) {
 	printf("Connected to client on port %d\n", server_handshake_port);
 
 	/* After the authorization, update the peer table */
-	unsigned long client_ip;
-	recv(client_handshake_socket, &client_ip, sizeof(unsigned long), 0);
+	// unsigned long client_ip;
+	// recv(client_handshake_socket, &client_ip, sizeof(unsigned long), 0);
+	unsigned long client_ip = get_peer_IP(client_handshake_socket);
+
+
 	peer_table_add(client_ip, client_handshake_socket);
 	peer_table_print();
 
@@ -114,18 +117,6 @@ void* handshake_handler(void* arg) {
 			case SIGNAL_FILE_UPDATE:
 				client_table = NULL;
 				recv_file_table(client_handshake_socket, &client_table);
-				// printf("^^^^^^^Client Table^^^^^^^^%s ^^^^\n", inet_ntoa(*(struct in_addr*)&client_ip));
-				// runner = client_table;
-				// while (runner->next != NULL) {
-				// 	printf("%s\t", runner->next->name);
-				// 	int i;
-				// 	for (i = 0; i < runner->next->num_peers; i++) {
-				// 		printf("%s\t", inet_ntoa(*(struct in_addr*)&runner->next->peers[i]));
-				// 	}
-				// 	printf("\n");
-				// 	runner = runner->next;
-				// }
-				// printf("=================================\n");
 				sync_from_client(client_table);
 				file_table_print();
 				/* broadcast the updated file table to all peers */

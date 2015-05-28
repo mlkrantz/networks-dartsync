@@ -17,6 +17,8 @@ typedef struct node{
 	int size;
 	//the name of the file
 	char name[256];
+	//the type of the file FILE_TYPE or FOLDER_TYPE
+	int type;
 	//the timestamp when the file is modified or created
 	time_t timestamp;
 	//pointer to build the linked list
@@ -48,5 +50,15 @@ void broadcast_file_table();
 // added by Sha
 int get_file_size(char *file_name);
 int get_file_line_num(char *file_name);
+
+// added by Wei
+/*
+ * Delete file or folder only when exists 
+ */
+void safe_delete(char* file_name);
+/*
+ * Create a folder when not exist. If the parent directory does not exist, create the parent directory first
+ */
+void safe_add_folder(char* folder_name);
 
 #endif

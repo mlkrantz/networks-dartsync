@@ -43,5 +43,9 @@ int create_client_socket(char* HostName, int ServerPort);
  * This function returns the ip address given socket
  */
 char *get_address_from_ip(int socket);
+/* 
+ *Get the unsigned long type ip of peer from a socket 
+ */
+unsigned long get_peer_IP(int peer_socket);
 
 #endif
