@@ -505,9 +505,9 @@ void* upload_handler(void* arg) {
             }  else {
                 length_sent = length_sent + file_block_length;
             }
-            printf("sleep 1s before sending another block...\n");
-            sleep(1);
-            printf("sleep is over!\n");
+            //printf("sleep 1s before sending another block...\n");
+            //sleep(1);
+            //printf("sleep is over!\n");
             
         }
         fclose(fp);
