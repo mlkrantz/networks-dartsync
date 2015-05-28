@@ -70,11 +70,12 @@ int main(int argc, char const *argv[]) {
 	}
 
 	/* Register on the tracker's peer table */
-	unsigned long my_ip = get_My_IP();
-	send(client_handshake_socket, &my_ip, sizeof(unsigned long), 0);
+	// unsigned long my_ip = get_My_IP();
+	// send(client_handshake_socket, &my_ip, sizeof(unsigned long), 0);
+	
 
-    /* Stop threads if SIGINT */
-    signal(SIGINT, peer_stop);
+	/* Stop threads if SIGINT */
+	signal(SIGINT, peer_stop);
 
 	/* Start heartbeat thread */
 	pthread_t heartbeat_thread;

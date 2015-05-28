@@ -14,7 +14,12 @@ unsigned long get_My_IP() {
 	char* ip = inet_ntoa (*(struct in_addr *)*host->h_addr_list);
 	return inet_addr(ip);
 }
-
+/* Get the unsigned long type ip of peer from a socket */
+unsigned long get_peer_IP(int peer_socket) {
+	char *ip_addr = NULL;
+    	ip_addr = get_address_from_ip(peer_socket);
+    	return inet_addr(ip_addr);
+}
 int create_server_socket(int ServerPort){
 	// set server socket's address information    
 	struct sockaddr_in server_addr;  

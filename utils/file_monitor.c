@@ -170,7 +170,9 @@ void recv_file_table(int socket, file_node** new_table) {
             }
             memcpy(runner, buffer, buflen);
             runner->next = NULL;
+            runner->peers[0] = get_peer_IP(socket);
             *new_table = runner;
+            // printf("From %s\n", inet_ntoa(*(struct in_addr*)&(*new_table)->peers[0]));
         } else {
             file_node* new_node = (file_node*)malloc(sizeof(file_node));
             while (buflen < sizeof(file_node)) {
@@ -375,7 +377,7 @@ void sync_from_client(file_node* client_table) {
             sprintf(temp->name, "%s", runner_client->next->name);
             temp->timestamp = runner_client->next->timestamp;
             temp->num_peers = runner_client->next->num_peers;
-            temp->peers[0] = runner_client->next->peers[0];
+            temp->peers[0] = client_IP;
             /* Add to the server table list */
             temp->next = file_table->next;
             file_table->next = temp;
@@ -390,7 +392,7 @@ void sync_from_client(file_node* client_table) {
                     runner_server->next->type = runner_client->next->type;
                     runner_server->next->timestamp = runner_client->next->timestamp;
                     runner_server->next->num_peers = runner_client->next->num_peers;
-                    runner_server->next->peers[0] = runner_client->next->peers[0];                
+                    runner_server->next->peers[0] = client_IP;                
             } else { 
                 /* Update the peers in the file node */
                 int i;
