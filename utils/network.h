@@ -1,3 +1,6 @@
+#ifndef NETWORK_H
+#define NETWORK_H
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <netdb.h>
@@ -40,3 +43,5 @@ int create_client_socket(char* HostName, int ServerPort);
  * This function returns the ip address given socket
  */
 char *get_address_from_ip(int socket);
+
+#endif

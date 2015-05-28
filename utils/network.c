@@ -73,27 +73,14 @@ int create_client_socket_byIp(unsigned long ServerIp, int ServerPort) {
 	bzero(&server_addr, sizeof(server_addr));  
 	server_addr.sin_family = AF_INET;  
 
-/*<<<<<<< HEAD
-	struct hostent *host;
-	if ((host = gethostbyaddr((char*)&ServerIp, 4, AF_INET)) == NULL) {
-		printf("create_client_socket(): Error get host by server IP\n");
-        return -1;
-	}
-=======*/
     struct in_addr in;
     in.s_addr = (unsigned int)ServerIp;
-/*>>>>>>> 439777572f6ec45bb67c3fbe3171bb9cf710da0f*/
 
 	char* ip = inet_ntoa(in);
 	if (inet_aton(ip, &server_addr.sin_addr) == 0)  {  
 		printf("create_client_socket(): Server IP address error!\n");  
-/*<<<<<<< HEAD*/
         return -1;
-	}  
-/*=======*/
-		/*exit(1);  
-	}*/
-/*>>>>>>> 439777572f6ec45bb67c3fbe3171bb9cf710da0f*/
+	}
 
 	server_addr.sin_port = htons(ServerPort);  
 	socklen_t server_addr_length = sizeof(server_addr);  

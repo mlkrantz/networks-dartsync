@@ -1,3 +1,6 @@
+#ifndef TRACKER_PEER_TABLE_H
+#define TRACKER_PEER_TABLE_H
+
 #include <time.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -21,3 +24,7 @@ void peer_table_update_timestamp(unsigned long ip);
 tracker_peer_t* get_peer_table();
 void peer_table_free(tracker_peer_t* peer_node);
 void peer_live_check();
+void peer_table_print();
+void peer_table_delete(unsigned long ip);
+
+#endif

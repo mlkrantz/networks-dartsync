@@ -1,6 +1,7 @@
 #include "file_monitor.h"
 #include "network.h"
 #include "tracker_peer_table.h"
+#include "peer2peer.h"
 
 
 char root_directory[128];

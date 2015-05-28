@@ -19,7 +19,7 @@ int main(int argc, char const *argv[]) {
     /* Get tracker info */
     char tracker_location[BUF_SIZE];
     printf("Enter tracker hostname or IP address: ");
-    fscanf(stdin, "%s", &tracker_location);
+    fscanf(stdin, "%s", tracker_location);
 
     struct sockaddr_in sa;
     int client_main_socket = -1;
