@@ -1,9 +1,10 @@
 #include "file_monitor.h"
 #include "network.h"
 #include "tracker_peer_table.h"
-
+#include <unistd.h>
 
 char root_directory[128];
+char *file_type_string[] = {"Folder", "File"};
 file_node* file_table;
 time_t last_table_update_time = 0;
 int update_enable;
@@ -62,6 +63,7 @@ void file_table_print() {
         int len = strlen(runner->next->name);
         if (len < 8)
             printf("\t");
+        printf("%s\t", file_type_string[(runner->next->type)/4-1]);
         printf("%ld\t", runner->next->timestamp);
         int i;
         for (i = 0; i < runner->next->num_peers; i++) {
@@ -86,24 +88,27 @@ int file_table_update_helper(char* directory, file_node** last) {
     } else {
         while ((direntp = readdir(dir_ptr))!=NULL) {
             if (direntp->d_name[0] != '.' && direntp->d_name[strlen(direntp->d_name)-1] != '~') {//Hidden file not display
+                file_node* new_node = (file_node*)malloc(sizeof(file_node));
+                bzero(new_node, sizeof(file_node)); 
+                (*last)->next = new_node;
+                (*last) = new_node;
+                sprintf(new_node->name, "%s/%s", directory, direntp->d_name);
+                stat(new_node->name, &attrib);
+                new_node->timestamp = attrib.st_mtime;
+                new_node->num_peers = 1;
+                new_node->peers[0] = file_table->peers[0];
+                new_node->next = NULL;
                 if (direntp->d_type == FILE_TYPE) {
-                    file_node* new_node = (file_node*)malloc(sizeof(file_node));
-                    bzero(new_node, sizeof(file_node)); /* temp test */
-                    (*last)->next = new_node;
-                    (*last) = new_node;
-                    sprintf(new_node->name, "%s/%s", directory, direntp->d_name);
-                    // printf("%s\n", new_node->name);
-                    stat(new_node->name, &attrib);
-                    new_node->timestamp = attrib.st_mtime;
-                    new_node->size = get_file_size(new_node->name);
-                    new_node->num_peers = 1;
-                    new_node->peers[0] = file_table->peers[0];
-                    new_node->next = NULL;
+                    new_node->size = get_file_size(new_node->name); 
+                    new_node->type = FILE_TYPE;                   
                     if (last_table_update_time <= attrib.st_mtime) {
                         is_updated = 1;
                     }
                 } else if (direntp->d_type == FOLDER_TYPE) {
-                    char sub_directory[128];
+                    new_node->size = 0;
+                    new_node->type = FOLDER_TYPE;
+                    char sub_directory[256];
+                    bzero(sub_directory, 256);
                     sprintf(sub_directory, "%s/%s", directory, direntp->d_name);
                     is_updated = file_table_update_helper(sub_directory, last) || is_updated;
                 } else {
@@ -187,6 +192,7 @@ void recv_file_table(int socket, file_node** new_table) {
             int len = strlen(runner->name);
             if (len < 8)
                 printf("\t");
+            printf("%s\t", file_type_string[(runner->type)/4-1]);
             printf("%ld\t", runner->timestamp);
             int i;
             for (i = 0; i < runner->num_peers; i++) {
@@ -223,10 +229,8 @@ void sync_with_server(file_node* server_table) {
         if (is_exist == 0) {
             printf("%s should be deleted\n", runner_client->next->name);
             is_updated = 1;
-            /* Delete the local file */
-            bzero(command, 256);
-            sprintf(command, "rm %s", runner_client->next->name);
-            system(command);
+            /* Delete the local file or local folder*/
+            safe_delete(runner_client->next->name);
         }
         runner_client = runner_client->next;
     }
@@ -245,27 +249,34 @@ void sync_with_server(file_node* server_table) {
         if (is_exist == 0) {
             printf("%s should be added\n", runner_server->next->name);
             is_updated = 1;
-            /* Download the file from peer */
-            download_file_multi_thread(runner_server->next);
-        } else {
-            if (runner_client->next->timestamp < runner_server->next->timestamp) {
-                printf("%s should be updated\n", runner_server->next->name);
-                is_updated = 1;
-                /* Delete the local file */
-                bzero(command, 256);
-                sprintf(command, "rm %s", runner_client->next->name);
-                system(command);
+            if (runner_server->next->type == FILE_TYPE) {
                 /* Download the file from peer */
                 download_file_multi_thread(runner_server->next);
+            } else {
+                /* Add the folder if needed */
+                safe_add_folder(runner_server->next->name);
+            }
+        } else {
+            if (runner_client->next->timestamp < runner_server->next->timestamp) {                
+                /* If both the file_node are folder, we won't update it */
+                if (runner_client->next->type != FOLDER_TYPE || runner_server->next->type != FOLDER_TYPE) {
+                    printf("%s should be updated\n", runner_server->next->name);
+                    is_updated = 1;
+                    safe_delete(runner_client->next->name);
+                    if (runner_server->next->type == FOLDER_TYPE) {
+                        safe_add_folder(runner_server->next->name);
+                    } else {
+                        /* Download the file from peer */
+                        download_file_multi_thread(runner_server->next);
+                    }
+                }                
             }
         }
         runner_server = runner_server->next;
     }
     
     /*
-     *
      *  Add code to delete useless temporary files
-     *
      */
     bzero(command, 256);
     sprintf(command, "find . -type f -name \"*~\" > file_to_be_deleted~");
@@ -330,6 +341,7 @@ void sync_from_client(file_node* client_table) {
                 file_node *temp = runner_server->next;
                 runner_server->next = temp->next;
                 free(temp);
+                continue;
             } else {
                 /* If peer's ip doesn't exist in the file node, we ask client to add this file */
                 printf("client should add %s\n", runner_server->next->name);
@@ -359,6 +371,7 @@ void sync_from_client(file_node* client_table) {
             file_node *temp = (file_node*)malloc(sizeof(file_node));
             bzero(temp, sizeof(file_node));
             temp->size = runner_client->next->size;
+            temp->type = runner_client->next->type;
             sprintf(temp->name, "%s", runner_client->next->name);
             temp->timestamp = runner_client->next->timestamp;
             temp->num_peers = runner_client->next->num_peers;
@@ -367,14 +380,17 @@ void sync_from_client(file_node* client_table) {
             temp->next = file_table->next;
             file_table->next = temp;
         } else {			
-            if (runner_client->next->timestamp < runner_server->next->timestamp) {
+            if ((runner_client->next->timestamp < runner_server->next->timestamp) && 
+                (runner_client->next->type != FOLDER_TYPE || runner_server->next->type != FOLDER_TYPE)) {
                 printf("client should update %s\n", runner_client->next->name);
-            } else if (runner_client->next->timestamp > runner_server->next->timestamp) {
-                printf("server should update %s\n", runner_client->next->name);
-                runner_server->next->size = runner_client->next->size;
-                runner_server->next->timestamp = runner_client->next->timestamp;
-                runner_server->next->num_peers = runner_client->next->num_peers;
-                runner_server->next->peers[0] = runner_client->next->peers[0];
+            } else if ((runner_client->next->timestamp > runner_server->next->timestamp) && 
+                          (runner_client->next->type != FOLDER_TYPE || runner_server->next->type != FOLDER_TYPE)) {
+                    printf("server should update %s\n", runner_client->next->name);
+                    runner_server->next->size = runner_client->next->size;
+                    runner_server->next->type = runner_client->next->type;
+                    runner_server->next->timestamp = runner_client->next->timestamp;
+                    runner_server->next->num_peers = runner_client->next->num_peers;
+                    runner_server->next->peers[0] = runner_client->next->peers[0];                
             } else { 
                 /* Update the peers in the file node */
                 int i;
@@ -454,4 +470,42 @@ int get_file_line_num(char *file_name) {
     }
     fclose(f);
     return num_line;
+}
+/*
+ * Delete file or folder only when exists 
+ */
+void safe_delete(char* file_name) {
+    if ((access(file_name, F_OK)) != -1)  {
+        // printf("File %s exist.\n", file_name);
+        char command[256];
+        bzero(command, 256);
+        sprintf(command, "rm -rf %s", file_name);
+        system(command);
+    } else {  
+        // printf("File %s not exist!\n", file_name);
+    }
+}
+/*
+ * Create a folder when not exist. If the parent directory does not exist, create the parent directory first
+ */
+void safe_add_folder(char* folder_name) {
+    char folder_path[256], command[256];
+    bzero(folder_path, sizeof(folder_path));
+    int len_folder_name = (int)strlen(folder_name);
+    int i;
+    for ( i = 0; i < len_folder_name; i++) {
+        folder_path[i] = folder_name[i];
+        if (folder_path[i] == '/') {
+            if (opendir(folder_path) == NULL) {
+                bzero(command, 256);
+                sprintf(command, "mkdir %s", folder_path);
+                system(command);
+            }
+        }
+    }
+    if (opendir(folder_name) == NULL) {
+        bzero(command, 256);
+        sprintf(command, "mkdir %s", folder_name);
+        system(command);
+    }
 }

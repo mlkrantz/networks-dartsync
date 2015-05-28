@@ -19,7 +19,7 @@ int main(int argc, char const *argv[]) {
     /* Get tracker info */
     char tracker_location[BUF_SIZE];
     printf("Enter tracker hostname or IP address: ");
-    fscanf(stdin, "%s", &tracker_location);
+    fscanf(stdin, "%s", tracker_location);
 
     struct sockaddr_in sa;
     int client_main_socket = -1;
@@ -30,14 +30,18 @@ int main(int argc, char const *argv[]) {
     if (is_valid_IP(tracker_location, &sa)) {
         /* Greeting with tracker on the public connection */
         unsigned long addr = sa.sin_addr.s_addr;
-        client_main_socket = create_client_socket_byIp(addr, SERVER_PORT);
+        if ((client_main_socket = create_client_socket_byIp(addr, SERVER_PORT)) < 0) {
+        	exit(1);
+        }
 
         /* Create private connection with tracker */
         recv(client_main_socket, &server_handshake_port, sizeof(int), 0);
         client_handshake_socket = create_client_socket_byIp(addr, server_handshake_port);
     } else {
 	    /* Greeting with tracker on the public connection */
-	    client_main_socket = create_client_socket(tracker_location, SERVER_PORT);
+	    if ((client_main_socket = create_client_socket(tracker_location, SERVER_PORT)) < 0) {
+	    	exit(1);
+	    }
 
 	    /* Create private connection with tracker */
 	    recv(client_main_socket, &server_handshake_port, sizeof(int), 0);
