@@ -15,6 +15,8 @@ void* file_checker(void* arg);
 void* tracker_handler(void* arg);
 int main_thread_alive = 1;
 
+char directory[MAX_DIR_LEN];
+
 int main(int argc, char const *argv[]) {
     /* Get tracker info */
     char tracker_location[BUF_SIZE];
@@ -68,6 +70,10 @@ int main(int argc, char const *argv[]) {
         close(client_handshake_socket);
         exit(EXIT_FAILURE);
 	}
+
+    /* Get directory information from server */
+    recv(client_handshake_socket, directory, MAX_DIR_LEN, 0);
+    printf("Monitoring directory " BLUE "./%s" RESET "\n", directory);
 
 	/* Register on the tracker's peer table */
 	// unsigned long my_ip = get_My_IP();
@@ -148,7 +154,7 @@ void* heartbeat(void* arg) {
 
 void* file_checker(void* arg) {
 	int client_handshake_socket = *(int*)arg;
-	watchDirectory("asd");
+	watchDirectory(directory);
 	file_table_initial();
 	unblock_update();
 	/* Monitor file directory periodically */

@@ -13,6 +13,14 @@
 // Number of tries for authentication
 #define MAX_TRY 3
 
+// Maximum number of peers
 #define MAX_PEER_NUM 200
+
+// Maximum length of directory name
+#define MAX_DIR_LEN 100
+
+// ANSI color constants
+#define BLUE "\x1b[34m"
+#define RESET "\x1b[0m"
 
 #endif
