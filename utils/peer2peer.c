@@ -263,7 +263,7 @@ void download_file_multi_thread(file_node* f_node) {
     }
     
     while (1) {
-        print_peer_flag(f_node->num_peers);
+        //print_peer_flag(f_node->num_peers);
         if (is_all_zero(f_node->num_peers)) {
             //printf("inside if-clause of is_all_zero()...\n");
             //printf("num_tmpt_file is %d\n", num_tmpt_file);
