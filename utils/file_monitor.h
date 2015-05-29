@@ -15,10 +15,12 @@
 typedef struct node{
 	//the size of the file
 	int size;
+    
 	//the name of the file
 	char name[256];
 	//the type of the file FILE_TYPE or FOLDER_TYPE
 	int type;
+    
 	//the timestamp when the file is modified or created
 	/* 
      * change long to unsigned int for use in raspberry pi
@@ -26,8 +28,6 @@ typedef struct node{
     unsigned int timestamp;
     //time_t timestamp;
     
-	//pointer to build the linked list
-	struct node *next;
 	//for the file table on peers, it is the ip address of the peer
 	//for the file table on tracker, it records the ip of all peers which has the newest edition of the file
 	int num_peers;
@@ -37,6 +37,10 @@ typedef struct node{
      */
 	//unsigned long peers[200];
     unsigned int peers[200];
+    
+    //pointer to build the linked list
+    struct node *next;
+
     
 }file_node;
 

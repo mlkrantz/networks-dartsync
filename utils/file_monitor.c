@@ -156,7 +156,7 @@ void send_file_table(int socket) {
     runner = file_table;
     while (runner != NULL) {
         printf("in %s, sizeof(file_node) is %lu\n", __func__, sizeof(file_node));
-        if (send(socket, runner, sizeof(file_node), 0) < 0) {
+        if (send(socket, runner, sizeof(file_node) - sizeof(struct node *), 0) < 0) {
             printf("Error in send_file_table\n");
         }
         runner = runner->next;
@@ -182,8 +182,8 @@ void recv_file_table(int socket, file_node** new_table) {
         if (runner == NULL) {
             printf("in %s, sizeof(file_node) is %lu\n", __func__, sizeof(file_node));
             runner = (file_node*)malloc(sizeof(file_node));
-            while (buflen < sizeof(file_node)) {
-                if ((len = recv(socket, buffer + buflen, sizeof(file_node) - buflen, 0)) < 0) {
+            while (buflen < sizeof(file_node) - sizeof(struct node *)) {
+                if ((len = recv(socket, buffer + buflen, sizeof(file_node) - sizeof(struct node *) - buflen, 0)) < 0) {
                     printf("Error in recv_file_table\n");
                     *new_table = NULL;
                     return;
@@ -202,8 +202,8 @@ void recv_file_table(int socket, file_node** new_table) {
             // printf("From %s\n", inet_ntoa(*(struct in_addr*)&(*new_table)->peers[0]));
         } else {
             file_node* new_node = (file_node*)malloc(sizeof(file_node));
-            while (buflen < sizeof(file_node)) {
-                if ((len = recv(socket, buffer + buflen, sizeof(file_node) - buflen, 0)) < 0) {
+            while (buflen < sizeof(file_node) - sizeof(struct node *)) {
+                if ((len = recv(socket, buffer + buflen, sizeof(file_node) - sizeof(struct node *) - buflen, 0)) < 0) {
                     printf("Error in recv_file_table\n");
                     *new_table = NULL;
                     return;
