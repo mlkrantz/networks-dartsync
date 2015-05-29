@@ -20,13 +20,24 @@ typedef struct node{
 	//the type of the file FILE_TYPE or FOLDER_TYPE
 	int type;
 	//the timestamp when the file is modified or created
-	time_t timestamp;
+	/* 
+     * change long to unsigned int for use in raspberry pi
+     */
+    unsigned int timestamp;
+    //time_t timestamp;
+    
 	//pointer to build the linked list
 	struct node *next;
 	//for the file table on peers, it is the ip address of the peer
 	//for the file table on tracker, it records the ip of all peers which has the newest edition of the file
 	int num_peers;
-	unsigned long peers[200];
+    
+    /*
+     * change long to unsigned int for use in raspberry pi
+     */
+	//unsigned long peers[200];
+    unsigned int peers[200];
+    
 }file_node;
 
 

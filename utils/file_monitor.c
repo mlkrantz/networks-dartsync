@@ -25,7 +25,10 @@ void watchDirectory(char* directory) {
 void file_table_initial() {
     file_table = (file_node*)malloc(sizeof(file_node));
     bzero(file_table, sizeof(file_node));
-    file_table->peers[0] = get_My_IP();
+    /*
+     * change long to unsigned int for use in raspberry pi
+     */
+    file_table->peers[0] = (unsigned int)get_My_IP();
 }
 file_node* get_my_file_table() {
     return file_table;
@@ -45,8 +48,15 @@ int file_table_update() {
         file_node* runner = file_table;
         
         //modified
-        time_t tmpt_time;
-        time(&tmpt_time);
+        /*
+         * change long to unsigned int for use in raspberry pi
+         */
+        time_t tmpt_time_long;
+        time(&tmpt_time_long);
+        
+        unsigned int tmpt_time;
+        tmpt_time = (unsigned int)tmpt_time_long;
+        
         
         int is_updated = file_table_update_helper(root_directory, &runner);
         //time(&last_table_update_time);
@@ -65,7 +75,7 @@ void file_table_print() {
         if (len < 8)
             printf("\t");
         printf("%s\t", file_type_string[(runner->next->type)/4-1]);
-        printf("%ld\t", runner->next->timestamp);
+        printf("%u\t", runner->next->timestamp);
         int i;
         for (i = 0; i < runner->next->num_peers; i++) {
             printf("%s\t", inet_ntoa(*(struct in_addr*)&runner->next->peers[i]));
@@ -171,7 +181,10 @@ void recv_file_table(int socket, file_node** new_table) {
             }
             memcpy(runner, buffer, buflen);
             runner->next = NULL;
-            runner->peers[0] = get_peer_IP(socket);
+            /*
+             * change long to unsigned int for use in raspberry pi
+             */
+            runner->peers[0] = (unsigned int)get_peer_IP(socket);
             *new_table = runner;
             // printf("From %s\n", inet_ntoa(*(struct in_addr*)&(*new_table)->peers[0]));
         } else {
@@ -196,7 +209,7 @@ void recv_file_table(int socket, file_node** new_table) {
             if (len < 8)
                 printf("\t");
             printf("%s\t", file_type_string[(runner->type)/4-1]);
-            printf("%ld\t", runner->timestamp);
+            printf("%u\t", runner->timestamp);
             int i;
             for (i = 0; i < runner->num_peers; i++) {
                 printf("%s\t", inet_ntoa(*(struct in_addr*)&runner->peers[i]));

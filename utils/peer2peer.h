@@ -11,8 +11,11 @@
  * for message transferred between peers
  */
 typedef struct pr_msg{
-	unsigned long recv_peer_ip;
-	int recv_peer_port;
+	/*
+     * unused fields in the struct
+     */
+    //unsigned long recv_peer_ip;
+	//int recv_peer_port;
 	/*int idx_of_this_peer;
 	int num_peers;*/
 	char filename[256];
@@ -25,7 +28,11 @@ typedef struct pr_msg{
  */
 typedef struct _peer_info_t {
     char file_name[256];                // Current downloading file name
-    unsigned long file_time_stamp;    // Timestamp of current downloading file
+    /*
+     * change long to unsigned int for use in raspberry pi
+     */
+    //unsigned long file_time_stamp;    // Timestamp of current downloading file
+    unsigned int file_time_stamp;
     int sockfd;                         // TCP connection to this remote peer
     int idx_of_this_peer;               // where the trunk begins in the file
     /* int num_peers;                      // trunk length of the file*/

@@ -13,145 +13,145 @@ int peer_flag[200];
  *** Test functions for single peer file transfer ***
  *** No longer useful in multi-peer file transfer ***
  ****************************************************/
-void download_file(file_node* f_node) {
-    if (f_node->num_peers == 0) {
-        printf("download_file: No peer alive\n");
-        return;
-    }
-    /* Connect to the send peer */
-    unsigned long send_peer_ip = f_node->peers[0];
-    printf("send_peer_ip: %ld\n", send_peer_ip);
-    int peer_socket = create_client_socket_byIp(send_peer_ip, PEER_PORT);
-    
-    /* Create new connection with the peer, for one to one service */
-    int download_port = PEER_PORT + 1;
-    int server_socket, download_socket;
-    while ((server_socket = create_server_socket(download_port)) < 0) {
-        download_port++;
-    }
-    
-    /* Initialize the message */
-    peer_msg *message = (peer_msg*)malloc(sizeof(peer_msg));
-    bzero(message, sizeof(peer_msg));
-    message->recv_peer_ip = get_My_IP();
-    message->recv_peer_port = download_port;
-    sprintf(message->filename, "%s", f_node->name);
-    if (send(peer_socket, message, sizeof(peer_msg), 0) < 0) {
-        printf("Fail sending peer message\n");
-    }
-    free(message);
-    
-    /* Wating for connecting */
-    if ((download_socket = accept(server_socket, NULL, NULL)) < 0) {
-        printf("Fail to accept the download_socket\n");
-        close(peer_socket);
-        close(server_socket);
-        return;
-    }
-    
-    /* Receive length of file */
-    int fileLen;
-    recv(download_socket, &fileLen, sizeof(int), 0);
-    /* Create new local file */
-    FILE *fp = fopen(f_node->name, "w");
-    if (fp == NULL)  {
-        printf("recvFile(): File:\t%s Can Not Open To Write!\n", f_node->name);
-        close(peer_socket);
-        close(server_socket);
-        close(download_socket);
-        return;
-    }
-    
-    /* Receive data of file */
-    char buffer[BUFFER_SIZE];
-    bzero(buffer, sizeof(buffer));
-    int download_length = 0;
-    while (download_length < fileLen) {
-        int buflen = 0, len;
-        while (download_length < fileLen && buflen < BUFFER_SIZE) {
-            if ((len = recv(download_socket, buffer + buflen, BUFFER_SIZE - buflen, 0)) < 0) {
-                printf("Error receive file data\n");
-                return;
-            } else {
-                buflen = buflen + len;
-                download_length = download_length + len;
-            }
-        }
-        int write_length = fwrite(buffer, sizeof(char), buflen, fp);
-        if (write_length < buflen) {
-            printf("recvFile(): File:\t%s Write Failed!\n", f_node->name);
-            return;
-        }
-        bzero(buffer, BUFFER_SIZE);
-    }
-    fclose(fp);
-    printf("Update file %s with timestamp %ld\n", f_node->name, f_node->timestamp);
-    set_mtime(f_node->name, f_node->timestamp);
-    close(peer_socket);
-    close(download_socket);
-}
-
-void* peer_handler(void* arg) {
-    /* Create the main socket */
-    int peer_main_socket = *(int*)arg;
-    /* Waiting for incoming request */
-    while (1) {
-        int peer_socket;
-        if ((peer_socket = accept(peer_main_socket, NULL, NULL)) > 0) {
-            /* Receive the message from peer */
-            peer_msg *message = (peer_msg*)malloc(sizeof(peer_msg));
-            bzero(message, sizeof(peer_msg));
-            char buffer[BUFFER_SIZE];
-            bzero(buffer, sizeof(buffer));
-            int buflen = 0, len;
-            while (buflen < sizeof(peer_msg)) {
-                if ((len = recv(peer_socket, buffer + buflen, sizeof(peer_msg) - buflen, 0)) < 0) {
-                    printf("Error recv peer message\n");
-                    break;
-                } else {
-                    buflen = buflen + len;
-                }
-            }
-            memcpy(message, buffer, sizeof(peer_msg));
-            
-            /* Connect to the private file transport socket */
-            int upload_socket = create_client_socket_byIp(message->recv_peer_ip, message->recv_peer_port);
-            /* Try to open the file */
-            FILE *fp = fopen(message->filename, "r");
-            
-            if (fp == NULL)  {
-                printf("File:\t%s Not Found!\n", message->filename);
-                free(message);
-                break;
-            } else {
-                /* Send the file length */
-                fseek(fp,0,SEEK_END);
-                int fileLen = ftell(fp);
-                fseek(fp,0,SEEK_SET);
-                send(upload_socket, &fileLen, sizeof(int), 0);
-                /* Send the file data */
-                char buffer[BUFFER_SIZE];
-                bzero(buffer, BUFFER_SIZE);
-                int file_block_length = 0;
-                while( (file_block_length = fread(buffer, sizeof(char), BUFFER_SIZE, fp)) > 0) {
-                    // printf("file_block_length = %d\n", file_block_length);
-                    if (send(upload_socket, buffer, file_block_length, 0) < 0) {
-                        printf("Send File:\t%s Failed!\n", message->filename);
-                        break;
-                    }
-                    bzero(buffer, sizeof(buffer));
-                }
-                fclose(fp);
-            }
-            free(message);
-        } else {
-            printf("Fail accept in peer_handler\n");
-            break;
-        }
-    }
-    printf("peer_handler_thread exit\n");
-    pthread_exit(NULL);
-}
+//void download_file(file_node* f_node) {
+//    if (f_node->num_peers == 0) {
+//        printf("download_file: No peer alive\n");
+//        return;
+//    }
+//    /* Connect to the send peer */
+//    unsigned long send_peer_ip = f_node->peers[0];
+//    printf("send_peer_ip: %ld\n", send_peer_ip);
+//    int peer_socket = create_client_socket_byIp(send_peer_ip, PEER_PORT);
+//    
+//    /* Create new connection with the peer, for one to one service */
+//    int download_port = PEER_PORT + 1;
+//    int server_socket, download_socket;
+//    while ((server_socket = create_server_socket(download_port)) < 0) {
+//        download_port++;
+//    }
+//    
+//    /* Initialize the message */
+//    peer_msg *message = (peer_msg*)malloc(sizeof(peer_msg));
+//    bzero(message, sizeof(peer_msg));
+//    message->recv_peer_ip = get_My_IP();
+//    message->recv_peer_port = download_port;
+//    sprintf(message->filename, "%s", f_node->name);
+//    if (send(peer_socket, message, sizeof(peer_msg), 0) < 0) {
+//        printf("Fail sending peer message\n");
+//    }
+//    free(message);
+//    
+//    /* Wating for connecting */
+//    if ((download_socket = accept(server_socket, NULL, NULL)) < 0) {
+//        printf("Fail to accept the download_socket\n");
+//        close(peer_socket);
+//        close(server_socket);
+//        return;
+//    }
+//    
+//    /* Receive length of file */
+//    int fileLen;
+//    recv(download_socket, &fileLen, sizeof(int), 0);
+//    /* Create new local file */
+//    FILE *fp = fopen(f_node->name, "w");
+//    if (fp == NULL)  {
+//        printf("recvFile(): File:\t%s Can Not Open To Write!\n", f_node->name);
+//        close(peer_socket);
+//        close(server_socket);
+//        close(download_socket);
+//        return;
+//    }
+//    
+//    /* Receive data of file */
+//    char buffer[BUFFER_SIZE];
+//    bzero(buffer, sizeof(buffer));
+//    int download_length = 0;
+//    while (download_length < fileLen) {
+//        int buflen = 0, len;
+//        while (download_length < fileLen && buflen < BUFFER_SIZE) {
+//            if ((len = recv(download_socket, buffer + buflen, BUFFER_SIZE - buflen, 0)) < 0) {
+//                printf("Error receive file data\n");
+//                return;
+//            } else {
+//                buflen = buflen + len;
+//                download_length = download_length + len;
+//            }
+//        }
+//        int write_length = fwrite(buffer, sizeof(char), buflen, fp);
+//        if (write_length < buflen) {
+//            printf("recvFile(): File:\t%s Write Failed!\n", f_node->name);
+//            return;
+//        }
+//        bzero(buffer, BUFFER_SIZE);
+//    }
+//    fclose(fp);
+//    printf("Update file %s with timestamp %ld\n", f_node->name, f_node->timestamp);
+//    set_mtime(f_node->name, f_node->timestamp);
+//    close(peer_socket);
+//    close(download_socket);
+//}
+//
+//void* peer_handler(void* arg) {
+//    /* Create the main socket */
+//    int peer_main_socket = *(int*)arg;
+//    /* Waiting for incoming request */
+//    while (1) {
+//        int peer_socket;
+//        if ((peer_socket = accept(peer_main_socket, NULL, NULL)) > 0) {
+//            /* Receive the message from peer */
+//            peer_msg *message = (peer_msg*)malloc(sizeof(peer_msg));
+//            bzero(message, sizeof(peer_msg));
+//            char buffer[BUFFER_SIZE];
+//            bzero(buffer, sizeof(buffer));
+//            int buflen = 0, len;
+//            while (buflen < sizeof(peer_msg)) {
+//                if ((len = recv(peer_socket, buffer + buflen, sizeof(peer_msg) - buflen, 0)) < 0) {
+//                    printf("Error recv peer message\n");
+//                    break;
+//                } else {
+//                    buflen = buflen + len;
+//                }
+//            }
+//            memcpy(message, buffer, sizeof(peer_msg));
+//            
+//            /* Connect to the private file transport socket */
+//            int upload_socket = create_client_socket_byIp(message->recv_peer_ip, message->recv_peer_port);
+//            /* Try to open the file */
+//            FILE *fp = fopen(message->filename, "r");
+//            
+//            if (fp == NULL)  {
+//                printf("File:\t%s Not Found!\n", message->filename);
+//                free(message);
+//                break;
+//            } else {
+//                /* Send the file length */
+//                fseek(fp,0,SEEK_END);
+//                int fileLen = ftell(fp);
+//                fseek(fp,0,SEEK_SET);
+//                send(upload_socket, &fileLen, sizeof(int), 0);
+//                /* Send the file data */
+//                char buffer[BUFFER_SIZE];
+//                bzero(buffer, BUFFER_SIZE);
+//                int file_block_length = 0;
+//                while( (file_block_length = fread(buffer, sizeof(char), BUFFER_SIZE, fp)) > 0) {
+//                    // printf("file_block_length = %d\n", file_block_length);
+//                    if (send(upload_socket, buffer, file_block_length, 0) < 0) {
+//                        printf("Send File:\t%s Failed!\n", message->filename);
+//                        break;
+//                    }
+//                    bzero(buffer, sizeof(buffer));
+//                }
+//                fclose(fp);
+//            }
+//            free(message);
+//        } else {
+//            printf("Fail accept in peer_handler\n");
+//            break;
+//        }
+//    }
+//    printf("peer_handler_thread exit\n");
+//    pthread_exit(NULL);
+//}
 
 /****************************************************
  ********** currently used function  ****************
@@ -221,7 +221,7 @@ void download_file_multi_thread(file_node* f_node) {
     
     /* save the result of finding corresponding temporary files */
     bzero(command, 256);
-    sprintf(command, "find ./%s -type f -name \"%s__*__%ld~\" > tmpt_file~", curr_dir, relative_dir, f_node->timestamp);
+    sprintf(command, "find ./%s -type f -name \"%s__*__%u~\" > tmpt_file~", curr_dir, relative_dir, f_node->timestamp);
     system(command);
     //printf("command is: %s\n", command);
     
@@ -274,7 +274,7 @@ void download_file_multi_thread(file_node* f_node) {
                 start_offset = (int) ((long) fileLen * (long)i / (long) num_tmpt_file);
                 next_offset = (int) ((long) fileLen * (long)(i + 1) / (long) num_tmpt_file);
                 part_length = next_offset - start_offset;
-                sprintf(tempfilename, "%s__%d__%d__%lu~", f_node->name, start_offset, part_length, f_node->timestamp);
+                sprintf(tempfilename, "%s__%d__%d__%u~", f_node->name, start_offset, part_length, f_node->timestamp);
                 if (get_file_size(tempfilename) < part_length) {
                     //printf("looping for available peer...\n");
                     mark = 1;
@@ -311,7 +311,7 @@ void download_file_multi_thread(file_node* f_node) {
         start_offset = (int) ((long) fileLen * (long)i / (long) num_tmpt_file);
         next_offset = (int) ((long) fileLen * (long)(i + 1) / (long) num_tmpt_file);
         part_length = next_offset - start_offset;
-        sprintf(tempfilename, "%s__%d__%d__%lu~", f_node->name, start_offset, part_length, f_node->timestamp);
+        sprintf(tempfilename, "%s__%d__%d__%u~", f_node->name, start_offset, part_length, f_node->timestamp);
         //printf("i %d, tempfilename %s\n", i, tempfilename);
         /* Open temp file */
         fp_tmpt = fopen(tempfilename, "r");
@@ -341,7 +341,7 @@ void download_file_multi_thread(file_node* f_node) {
         system(command);
     }
     fclose(fp);
-    printf("Update file %s with timestamp %ld\n", f_node->name, f_node->timestamp);
+    printf("Update file %s with timestamp %u\n", f_node->name, f_node->timestamp);
     set_mtime(f_node->name, f_node->timestamp);
 }
 
@@ -372,7 +372,7 @@ void* download_handler(void* arg) {
     
     /* Create new local file */
     memset(tempfilename, 0, 256);
-    sprintf(tempfilename, "%s__%d__%d__%lu~", peer_info->file_name, peer_info->piece_start_idx, peer_info->piece_len, peer_info->file_time_stamp);
+    sprintf(tempfilename, "%s__%d__%d__%u~", peer_info->file_name, peer_info->piece_start_idx, peer_info->piece_len, peer_info->file_time_stamp);
     
     /* Initialize the peer-to-peer message */
     msg = (peer_msg *)malloc(sizeof(peer_msg));
@@ -553,7 +553,10 @@ peer_info_t *parse_tmpt_file_name(char *tmpt_file_name) {
     bzero(buf, 20);
     pch = strstr(pch_last, "~");
     memcpy(buf, pch_last, pch - pch_last);
-    return_t->file_time_stamp = atol(buf);
+    /*
+     * change long to unsigned int for use in raspberry pi
+     */
+    return_t->file_time_stamp = (unsigned int)atol(buf);
     pch = pch + 2;
     pch_last = pch;
     
