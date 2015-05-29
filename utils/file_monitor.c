@@ -1,8 +1,9 @@
 #include "file_monitor.h"
 #include "network.h"
 #include "tracker_peer_table.h"
-#include <unistd.h>
 #include "peer2peer.h"
+#include <unistd.h>
+#include <errno.h>
 
 char root_directory[128];
 char *file_type_string[] = {"Folder", "File"};
@@ -75,6 +76,7 @@ void file_table_print() {
     }
     printf("========================================================\n");
 }
+
 int file_table_update_helper(char* directory, file_node** last) {
     int is_updated = 0;
     struct stat attrib;
@@ -82,13 +84,22 @@ int file_table_update_helper(char* directory, file_node** last) {
     if (last_table_update_time <= attrib.st_mtime) {
         is_updated = 1;
     }
-    DIR * dir_ptr;
-    struct dirent * direntp;
-    if((dir_ptr = opendir(directory))==NULL) {
+    DIR *dir_ptr;
+    struct dirent *direntp;
+    if ((dir_ptr = opendir(directory)) == NULL) {
         printf("Cannot open %s\n",directory);
+        /* Create directory if it does not exist */
+        if (errno == ENOENT) {
+            printf("Creating directory %s\n", directory);
+            if (mkdir(directory, 0755) < 0) {
+                fprintf(stderr, "Error: could not create directory %s\n", directory);
+            } else {
+                return 1;
+            }
+        }
     } else {
         while ((direntp = readdir(dir_ptr))!=NULL) {
-            if (direntp->d_name[0] != '.' && direntp->d_name[strlen(direntp->d_name)-1] != '~') {//Hidden file not display
+            if (direntp->d_name[0] != '.' && direntp->d_name[strlen(direntp->d_name)-1] != '~') { //Hidden file not displayed
                 file_node* new_node = (file_node*)malloc(sizeof(file_node));
                 bzero(new_node, sizeof(file_node)); 
                 (*last)->next = new_node;
@@ -153,7 +164,7 @@ void recv_file_table(int socket, file_node** new_table) {
     
     char *buffer = (char*)malloc(sizeof(file_node));
     int len, buflen;
-    printf("===============Receive remote table===================\n");
+    printf("================Receive Remote Table====================\n");
     while (num_nodes > 0) {
         buflen = 0;
         bzero(buffer, sizeof(file_node));
@@ -207,7 +218,7 @@ void recv_file_table(int socket, file_node** new_table) {
         num_nodes--;
     }
     if (*new_table != NULL) {
-        printf("===============From %s====================\n", inet_ntoa(*(struct in_addr*)&(*new_table)->peers[0]));
+        printf("================From  %s====================\n", inet_ntoa(*(struct in_addr*)&(*new_table)->peers[0]));
     }
     free(buffer);
 }

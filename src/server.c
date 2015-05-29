@@ -14,8 +14,18 @@ void* peer_live_handler(void* arg);
 int server_socket;
 int main_thread_alive = 1;
 char *password = "";
+char directory[MAX_DIR_LEN];
 
 int main(int argc, char const *argv[]) {
+    char *default_dir = "dartsync";
+    printf("Enter the root directory that DartSync will monitor (default is " BLUE "%s" RESET "): ", default_dir);
+
+    /* Default if nothing entered */
+    if (fscanf(stdin, "%[^\n]s", directory) < 1) {
+        strncpy(directory, default_dir, strlen(default_dir) + 1);
+    }
+    // printf("Monitoring root directory " BLUE "%s" RESET "\n", directory);
+
     char *prompt = "Enter a password peer nodes will use to connect: ";
     password = getpass(prompt);
 
@@ -92,11 +102,13 @@ void* handshake_handler(void* arg) {
 	}
 	printf("Connected to client on port %d\n", server_handshake_port);
 
+    /* Send directory information to client */
+    send(client_handshake_socket, directory, MAX_DIR_LEN, 0);
+
 	/* After the authorization, update the peer table */
 	// unsigned long client_ip;
 	// recv(client_handshake_socket, &client_ip, sizeof(unsigned long), 0);
 	unsigned long client_ip = get_peer_IP(client_handshake_socket);
-
 
 	peer_table_add(client_ip, client_handshake_socket);
 	peer_table_print();
