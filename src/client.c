@@ -186,9 +186,9 @@ void* tracker_handler(void* arg) {
             }
 			continue;
 		}	
-        printf("before sync_with_server()\n");
+        //printf("before sync_with_server()\n");
 		sync_with_server(server_table);
-        printf("after sync_with_server()\n");
+        //printf("after sync_with_server()\n");
 		file_table_free(server_table);
 	}
 	printf("tracker_handler_thread exit\n");

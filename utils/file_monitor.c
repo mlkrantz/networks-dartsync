@@ -155,7 +155,7 @@ void send_file_table(int socket) {
     }
     runner = file_table;
     while (runner != NULL) {
-        printf("in %s, sizeof(file_node) is %lu\n", __func__, sizeof(file_node));
+        //printf("in %s, sizeof(file_node) is %lu\n", __func__, sizeof(file_node));
         if (send(socket, runner, sizeof(file_node) - sizeof(struct node *), 0) < 0) {
             printf("Error in send_file_table\n");
         }
@@ -180,7 +180,7 @@ void recv_file_table(int socket, file_node** new_table) {
         buflen = 0;
         bzero(buffer, sizeof(file_node));
         if (runner == NULL) {
-            printf("in %s, sizeof(file_node) is %lu\n", __func__, sizeof(file_node));
+            //printf("in %s, sizeof(file_node) is %lu\n", __func__, sizeof(file_node));
             runner = (file_node*)malloc(sizeof(file_node));
             while (buflen < sizeof(file_node) - sizeof(struct node *)) {
                 if ((len = recv(socket, buffer + buflen, sizeof(file_node) - sizeof(struct node *) - buflen, 0)) < 0) {
