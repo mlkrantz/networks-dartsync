@@ -30,6 +30,7 @@ char* compress_stream(char *original, unsigned long int *decompressed_length, un
                 printf("Unknown error\n");
                 break;
         }
+        fflush(stdout);
         free(compress_buf);
         return NULL;
     }

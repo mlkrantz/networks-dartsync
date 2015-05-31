@@ -432,6 +432,7 @@ void* download_handler(void* arg) {
             char *decompressed = decompress_stream(compressed_buffer, &compressed_recv_length, &destlen);
             if (!decompressed) {
                 printf("Error decompressing file!\n");
+                fflush(stdout);
                 download_length = fileLen;
                 peer_flag[peer_info->idx_of_this_peer] = 2;
                 return NULL;
