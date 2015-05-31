@@ -24,15 +24,15 @@ char* compress_stream(char *original, unsigned long int *decompressed_length, un
                 printf("Out of memory!\n");
                 break;
             case Z_DATA_ERROR:
-                printf("Data may be corrupted!\n");
+                printf("Data is corrupted!\n");
                 break;
             default:
                 printf("Unknown error\n");
                 break;
         }
         fflush(stdout);
-        // free(compress_buf);
-        // return NULL;
+        free(compress_buf);
+        return NULL;
     }
     compress_buf = (char*) realloc(compress_buf, *compressed_length);
     return compress_buf;
@@ -50,15 +50,15 @@ char* decompress_stream(char* compressed, unsigned long int *compressed_length, 
                 printf("Out of memory!\n");
                 break;
             case Z_DATA_ERROR:
-                printf("Data may be corrupted!\n");
+                printf("Data is corrupted!\n");
                 break;
             default:
                 printf("Unknown error\n");
                 break;
         }
         fflush(stdout);
-        // free(decompress_buf);
-        // return NULL;
+        free(decompress_buf);
+        return NULL;
     }
     decompress_buf = (char*) realloc(decompress_buf, *decompressed_length);
     return decompress_buf;

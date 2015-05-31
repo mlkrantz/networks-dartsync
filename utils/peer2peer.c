@@ -432,7 +432,7 @@ void* download_handler(void* arg) {
             char *decompressed = decompress_stream(compressed_buffer, &compressed_recv_length, &destlen);
             if (!decompressed) {
                 printf("Error decompressing file!\n");
-                free(decompressed);
+                fflush(stdout);
                 download_length = fileLen;
                 peer_flag[peer_info->idx_of_this_peer] = 2;
                 return NULL;
@@ -531,7 +531,6 @@ void* upload_handler(void* arg) {
             char *compressed = compress_stream(buffer, &file_block_length, &compressed_length);
             if (!compressed) {
                 printf("Error compressing file %s\n", message->filename);
-                free(compressed);
                 break;
             }
             // printf("Sending compressed piece of length %lu\n", compressed_length);
