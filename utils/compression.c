@@ -42,6 +42,21 @@ char* decompress_stream(char* compressed, unsigned long int *compressed_length, 
     char *decompress_buf = calloc(*decompressed_length, sizeof(char));
     int ret = uncompress((unsigned char*) decompress_buf, decompressed_length, (unsigned char*) compressed, *compressed_length);
     if (ret != Z_OK) {
+        switch (ret) {
+            case Z_BUF_ERROR:
+                printf("Buffer was not large enough to hold decompressed data\n");
+                break;
+            case Z_MEM_ERROR:
+                printf("Out of memory!\n");
+                break;
+            case Z_DATA_ERROR:
+                printf("Data is corrupted!\n");
+                break;
+            default:
+                printf("Unknown error\n");
+                break;
+        }
+        fflush(stdout);
         free(decompress_buf);
         return NULL;
     }
