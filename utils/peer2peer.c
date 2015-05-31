@@ -525,14 +525,14 @@ void* upload_handler(void* arg) {
             bzero(buffer, BUFFER_SIZE);  
             fread(buffer, sizeof(char), file_block_length, fp);
             /* Compress the file */
-            printf("file_block_length is %d\n", file_block_length);
+            // printf("file_block_length is %d\n", file_block_length);
             unsigned long int compressed_length = 0;
             char *compressed = compress_stream(buffer, &file_block_length, &compressed_length);
             if (!compressed) {
                 printf("Error compressing file %s\n", message->filename);
                 break;
             }
-            printf("Sending compressed piece of length %lu\n", compressed_length);
+            // printf("Sending compressed piece of length %lu\n", compressed_length);
             if (send(peer_socket, &compressed_length, sizeof(unsigned long int), 0) < 0) {
                 printf("Send file size failed for %s\n", message->filename);
                 free(compressed); 
