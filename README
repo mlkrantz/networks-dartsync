@@ -4,9 +4,6 @@
                                              Professor Xia Zhou, Spring 2015
 *****************************************************************************************************************
 
-TO DO: Add more details about how tracker & node communicates. Add features as we implement them. Version history.
-       Update info as it becomes relevant
-
 ____________________________
 
 I. GENERAL OVERVIEW
@@ -52,26 +49,30 @@ _____________________________
 III. FEATURES
 _____________________________
 
-UPDATE : 5/24/2015
+UPDATE : 5/31/2015
 
-O Compatibility with Raspberry Pi & other Linux Systems        
+O Compatibility with Linux Systems        
 O TCP Connection & Data Transfer
 O Local File Monitoring
 O Synchronization of multiple files by comparing timestamps
 O File replacement when updating files
 O Data retrieval from multiple peers                          
-O Dedicated tracker node implemented on Raspberry Pi
 
-O Partial Download?
-O Cross platform compatibility?
-O Primitive GTK based GUI?
+"Extra Credit"
+O Dedicated tracker node implemented on Raspberry Pi
+O Resume from partial download
+O Compatability with OSX, Linux, and Raspberry Pi
+O Compression and Decompression of files
+O Authentication / Password protection
+O Dynamic implementation of program (No configuration file necessary)
+O Synchronization of multiple folders
 
 _____________________________________________
 
 IV. IMPLEMENTATION & RUNTIME INSTRUCTIONS
 _____________________________________________
 
-UPDATED : 5/24/2015
+UPDATED : 5/31/2015
 
 Our implementation of Dartsync comprises of the following components & files:
 
@@ -89,13 +90,13 @@ peer2peer.c          - Manages communication between peers, as well as the proce
 
 tracker_peer_table.c - Table the tracker uses to manage peer connections. Keeps track of which peers are alive, file informatation, and file information specific to each peer.
 
+compression.c        - Enables file compression and decompression
 ____________________________
 
 V. SPECIAL NOTES
 ____________________________
 
-N/A TO BE FILLED AS NEEDED
-
+NOTE: If the header file <zlib.h> is not available, the latest version can be downloaded from http://www.zlib.net
 ____________________________
 
 VI. ACKNOWLEDGEMENTS
@@ -104,14 +105,3 @@ ____________________________
 Credit for the concept of Dartsync goes to the Computer Science department at Dartmouth College, Professor Xia Zhou, and Professor Andrew Campbell.
 
 Project created as a product of the course CS 60 - Computer Networks, taught at Dartmouth College.
-
-
-
-
-
-
-
-
-
-
-
