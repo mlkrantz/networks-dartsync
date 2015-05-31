@@ -1,13 +1,14 @@
 #include "network.h"
 #include "tracker_peer_table.h"
 #include "peer2peer.h"
+#include "compression.h"
 #include <pthread.h>
 #include <unistd.h>
+#include <zlib.h>
 
 /*int num_finished = 0;
 pthread_mutex_t *flow_control_mutex;*/
 int peer_flag[200];
-
 
 /****************************************************
  *** Test functions for single peer file transfer ***
@@ -228,7 +229,7 @@ void download_file_multi_thread(file_node* f_node) {
     /* if there are no temporary files locally, we start downloading directly */
     if (get_file_size("tmpt_file~") <= 0) {
         
-        printf("no temporary files, start new donwloading %s...\n", f_node->name);
+        printf("No temporary files, start new download of %s...\n", f_node->name);
         
         /* Create download thread */
         num_tmpt_file = f_node->num_peers;
@@ -255,7 +256,7 @@ void download_file_multi_thread(file_node* f_node) {
     }
     /* if there are temporary files, which means we resume from partial downloading */
     else {
-        printf("temporary files exist, resume downloading %s...\n", f_node->name);
+        printf("Temporary files exist, resume downloading %s...\n", f_node->name);
         num_tmpt_file = get_file_line_num("tmpt_file~");
         bzero(command, 256);
         sprintf(command, "rm -rf tmpt_file~");
@@ -302,7 +303,7 @@ void download_file_multi_thread(file_node* f_node) {
     /* Merge the file */
     fp = fopen(f_node->name, "w");
     if (fp == NULL)  {
-        printf("download_file_multi_thread: File:\t%s Can Not Open To Write!\n", f_node->name);
+        printf("download_file_multi_thread: File:\t%s can not open to write!\n", f_node->name);
         return;
     }
     for (i = 0; i < num_tmpt_file; i++) {
@@ -329,9 +330,7 @@ void download_file_multi_thread(file_node* f_node) {
             write_length = (int)fwrite(buffer, sizeof(char), buflen, fp);
         /*
          * should add bzero() after reading temporary files each time
-         */
-        
-        
+         */       
         
         }
         fclose(fp_tmpt);
@@ -389,10 +388,7 @@ void* download_handler(void* arg) {
     printf("download %s begin at %d, length %d, from %s\n", peer_info->file_name, msg->piece_start_idx, msg->piece_len, ip_addr);
     free(ip_addr);
     
-    
-    send(peer_socket, (void *)msg, sizeof(peer_msg), 0);
-    
-    
+    send(peer_socket, (void *)msg, sizeof(peer_msg), 0);  
 
     fp = fopen(tempfilename, "a");
     if (fp == NULL)  {
@@ -400,29 +396,58 @@ void* download_handler(void* arg) {
     } else {
         /* Receive data of file */
         char buffer[BUFFER_SIZE];
-        bzero(buffer, sizeof(buffer));
         int download_length = 0;
+
         while (download_length < fileLen) {
-            int buflen = 0, len;
-            while (download_length < fileLen && buflen < BUFFER_SIZE) {
-                if ((len = (int)recv(peer_socket, buffer + buflen, BUFFER_SIZE - buflen, 0)) <= 0) {
-                    printf("Error receive file data\n");
+            bzero(buffer, sizeof(buffer));
+
+            /* Receive compressed length from tracker */
+            printf("%d of %d decompressed bytes downloaded...\n", download_length, fileLen);
+            unsigned long int compressed_recv_length = 0;
+            if (recv(peer_socket, &compressed_recv_length, sizeof(unsigned long int), 0) <= 0) {
+                printf("Error receiving file data size\n");
+                download_length = fileLen;
+                peer_flag[peer_info->idx_of_this_peer] = 2;
+                return NULL;
+            }
+            printf("Received compressed file size of %d\n", compressed_recv_length);
+            
+            char compressed_buffer[compressed_recv_length];
+            bzero(compressed_buffer, sizeof(compressed_buffer));
+
+            int compressed_buflen = 0, len = 0;
+            while (compressed_buflen < compressed_recv_length) {
+                if ((len = recv(peer_socket, compressed_buffer + compressed_buflen, compressed_recv_length - compressed_buflen, 0)) <= 0) {
+                    printf("Error receiving file data\n");
                     download_length = fileLen;
                     peer_flag[peer_info->idx_of_this_peer] = 2;
                     return NULL;
                 } else {
-                    buflen = buflen + len;
-                    download_length = download_length + len;
+                    compressed_buflen = compressed_buflen + len;
                 }
             }
-            int write_length = (int)fwrite(buffer, sizeof(char), buflen, fp);
+
+            /* Decompress the file */
+            unsigned long int destlen = BUFFER_SIZE;
+            char *decompressed = decompress_stream(compressed_buffer, &compressed_recv_length, &destlen);
+            if (!decompressed) {
+                printf("Error decompressing file!\n");
+                download_length = fileLen;
+                peer_flag[peer_info->idx_of_this_peer] = 2;
+                return NULL;
+            }
+            /* Put in buffer */
+            memcpy(buffer, decompressed, destlen);
+            free(decompressed);
+            download_length = download_length + destlen;
+
+            int write_length = (int)fwrite(buffer, sizeof(char), destlen, fp);
             fflush(fp);
-            if (write_length < buflen) {
-                printf("recvFile(): File:\t%s Write Failed!\n", peer_info->file_name);
+            if (write_length < destlen) {
+                printf("recvFile(): file: %s write failed!\n", peer_info->file_name);
                 download_length = fileLen;
                 break;
             }
-            bzero(buffer, BUFFER_SIZE);
         }
         fclose(fp);
     }
@@ -488,22 +513,38 @@ void* upload_handler(void* arg) {
     /* Try to open the file */
     FILE *fp = fopen(message->filename, "r");
     if (fp == NULL)  {  
-        printf("File:\t%s Not Found!\n", message->filename);
+        printf("File: %s not found!\n", message->filename);
     } else {
         int start_offset = message->piece_start_idx;
         int part_length = message->piece_len;
         fseek(fp, start_offset, SEEK_SET);
-        int file_block_length;
+        unsigned long int file_block_length;
         int length_sent = 0;
         while (length_sent < part_length) {
             file_block_length = (part_length - length_sent) >= BUFFER_SIZE ? BUFFER_SIZE : part_length - length_sent;
             bzero(buffer, BUFFER_SIZE);  
             fread(buffer, sizeof(char), file_block_length, fp);
-            if (send(peer_socket, buffer, file_block_length, 0) < 0) {
-                printf("Send File:\t%s Failed!\n", message->filename);  
+            /* Compress the file */
+            printf("file_block_length is %d\n", file_block_length);
+            unsigned long int compressed_length = 0;
+            char *compressed = compress_stream(buffer, &file_block_length, &compressed_length);
+            if (!compressed) {
+                printf("Error compressing file %s\n", message->filename);
+                break;
+            }
+            printf("Sending compressed piece of length %lu\n", compressed_length);
+            if (send(peer_socket, &compressed_length, sizeof(unsigned long int), 0) < 0) {
+                printf("Send file size failed for %s\n", message->filename);
+                free(compressed); 
+                break;
+            }
+            if (send(peer_socket, compressed, compressed_length, 0) < 0) {
+                printf("Send file: %s failed!\n", message->filename);
+                free(compressed);
                 break;  
-            }  else {
+            } else {
                 length_sent = length_sent + file_block_length;
+                free(compressed);
             }
             //printf("sleep 1s before sending another block...\n");
             //sleep(1);
