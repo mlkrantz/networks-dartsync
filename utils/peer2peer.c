@@ -404,16 +404,25 @@ void* download_handler(void* arg) {
             /* Receive compressed length from tracker */
             printf("%d of %d decompressed bytes downloaded...\n", download_length, fileLen);
             unsigned long int compressed_recv_length = 0;
-            if (recv(peer_socket, &compressed_recv_length, sizeof(unsigned long int), 0) <= 0) {
-                printf("Error receiving file data size\n");
-                download_length = fileLen;
-                peer_flag[peer_info->idx_of_this_peer] = 2;
-                return NULL;
+            /*--*/
+            int templen, cumlen = 0;
+            // char compressed_recv_length_chars[8];            
+            /*--*/
+            while (cumlen < 8){
+                if ((templen = recv(peer_socket, (char*)&compressed_recv_length + cumlen, sizeof(unsigned long int) - cumlen, 0)) <= 0) {
+                    printf("Error receiving file data size\n");
+                    download_length = fileLen;
+                    peer_flag[peer_info->idx_of_this_peer] = 2;
+                    return NULL;
+                } 
+                cumlen += templen;
             }
+            // printf("cumlen %d\n", cumlen);
             printf("Received compressed file size of %lu\n", compressed_recv_length);
             
-            char compressed_buffer[compressed_recv_length];
-            bzero(compressed_buffer, sizeof(compressed_buffer));
+            // char compressed_buffer[compressed_recv_length];
+            // bzero(compressed_buffer, sizeof(compressed_buffer));
+            char* compressed_buffer = calloc(compressed_recv_length, sizeof(char));
 
             int compressed_buflen = 0, len = 0;
             while (compressed_buflen < compressed_recv_length) {
@@ -427,6 +436,7 @@ void* download_handler(void* arg) {
                 }
             }
 
+            // printf("Really receive %d\n", compressed_buflen);
             /* Decompress the file */
             unsigned long int destlen = BUFFER_SIZE;
             char *decompressed = decompress_stream(compressed_buffer, &compressed_recv_length, &destlen);
@@ -440,6 +450,9 @@ void* download_handler(void* arg) {
             /* Put in buffer */
             memcpy(buffer, decompressed, destlen);
             free(decompressed);
+            /*---*/
+            free(compressed_buffer);
+            /*---*/
             download_length = download_length + destlen;
 
             int write_length = (int)fwrite(buffer, sizeof(char), destlen, fp);
