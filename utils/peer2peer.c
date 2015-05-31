@@ -410,7 +410,7 @@ void* download_handler(void* arg) {
                 peer_flag[peer_info->idx_of_this_peer] = 2;
                 return NULL;
             }
-            printf("Received compressed file size of %d\n", compressed_recv_length);
+            printf("Received compressed file size of %lu\n", compressed_recv_length);
             
             char compressed_buffer[compressed_recv_length];
             bzero(compressed_buffer, sizeof(compressed_buffer));
